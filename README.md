@@ -36,27 +36,11 @@ The CarWash Display Dashboard is a full-stack application designed to manage and
 - **Progress Bar Display:**  
   - Shows a "wash booked" message if the scheduled start time is in the future.
   - Displays an animated progress bar once the car wash has started, along with a dynamic time countdown.
-  
-## Running the Application
-
-### On Windows
-A batch file (`run_project.bat`) is provided to automate the entire setup process. This batch file will:
-- **Check for Node.js:** Automatically installs Node.js using Chocolatey if it's not found.
-- **Install Project Dependencies:** Runs `npm install` to ensure all necessary packages are installed.
-- **Build the React Project:** Generates an optimized production build using `npm run build`.
-- **Start Servers:** Launches the Express server and React development server in separate command prompt windows.
-- **Open Browser Windows:** Automatically opens the client interface and a server endpoint to verify functionality.
 
 #### Usage
-1. **Ensure Windows has administrative permissions** (for software installations via Chocolatey if Node.js is missing).
+1. Ensure Windows has administrative permissions
 2. Place the `run_project.bat` file in the root directory (where `package.json` is located).
 3. Double-click `run_project.bat` to run the project.
-
-### Development Workflow
-- **Starting in Development Mode:**  
-  Use `npm start` to run the React development server for real-time changes.
-- **Building for Production:**  
-  Run `npm run build` for an optimized and minified version of the React app.
   
 ### Customization
 - **Change Server File Name:**  
