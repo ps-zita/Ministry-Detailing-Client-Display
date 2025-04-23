@@ -1,6 +1,6 @@
 # Ministry of Detailing Booking Manager
 
-The CarWash Display Dashboard is a full-stack application designed to manage and visualize the scheduling and progress of car wash services. The project integrates an Express backend with a React frontend to provide a dynamic, real-time dashboard for both clients and business operators.
+The Ministry of Detailing Booking Manager is a full-stack application designed to manage and visualize the scheduling and progress of car wash services. The project integrates an Express backend with a React frontend to provide a dynamic, real-time dashboard for both clients and business operators.
 
 ## Features
 
