@@ -37,11 +37,6 @@ The CarWash Display Dashboard is a full-stack application designed to manage and
   - Shows a "wash booked" message if the scheduled start time is in the future.
   - Displays an animated progress bar once the car wash has started, along with a dynamic time countdown.
 
-#### Usage
-1. Ensure Windows has administrative permissions
-2. Place the `run_project.bat` file in the root directory (where `package.json` is located).
-3. Double-click `run_project.bat` to run the project.
-  
 ### Customization
 - **Change Server File Name:**  
   If your Express server entry file is not named `server.js`, update the batch file accordingly.
