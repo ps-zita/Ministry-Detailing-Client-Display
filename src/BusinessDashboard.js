@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const BUSINESS_START = 8 * 60; // 8:00 AM in minutes
 const BUSINESS_END = 18 * 60;  // 6:00 PM in minutes
-const TOTAL_BUSINESS_MINUTES = BUSINESS_END - BUSINESS_START; // total minutes in business day
-// Timeline container now is 99% of viewport width.
+const TOTAL_BUSINESS_MINUTES = BUSINESS_END - BUSINESS_START; 
 const TIMELINE_WIDTH = window.innerWidth * 0.99;
 
 const popularBrands = [
@@ -13,13 +12,24 @@ const popularBrands = [
 ];
 
 const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar, clearCars }) => {
-  // Helper function to get current time as HH:MM.
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const getCurrentTimeString = () => {
     const now = new Date();
     const hh = now.getHours().toString().padStart(2, '0');
     const mm = now.getMinutes().toString().padStart(2, '0');
     return `${hh}:${mm}`;
   };
+
+  // Broadcast channel listener so that when a car is added/removed/updated, all devices refresh.
+  useEffect(() => {
+    const bc = new BroadcastChannel('dashboard-updates');
+    bc.onmessage = (event) => {
+      if (event.data && event.data.type === 'refresh') {
+        window.location.reload();
+      }
+    };
+    return () => bc.close();
+  }, []);
 
   const [showForm, setShowForm] = useState(false);
   const [editingCar, setEditingCar] = useState(null);
@@ -31,7 +41,7 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
     year: '',
     eta: '',
     notes: '',
-    scheduledTime: getCurrentTimeString() // default to current time
+    scheduledTime: getCurrentTimeString()
   });
   const [editValues, setEditValues] = useState({});
 
@@ -63,17 +73,11 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
     }
     const countdown = etaMinutes * 60;
     const totalTime = countdown;
-
-    // Combine today's date with the scheduledTime (HH:MM)
-    const today = new Date();
     const [hours, minutes] = scheduledTime.split(':').map(Number);
-    today.setHours(hours);
-    today.setMinutes(minutes);
-    today.setSeconds(0);
-    today.setMilliseconds(0);
-    const scheduledISO = today.toISOString();
-    const finishTime = new Date(today.getTime() + etaMinutes * 60000);
-
+    const scheduled = new Date(selectedDate);
+    scheduled.setHours(hours, minutes, 0, 0);
+    const scheduledISO = scheduled.toISOString();
+    const finishTime = new Date(scheduled.getTime() + etaMinutes * 60000);
     const newCar = {
       id: Date.now(),
       plate,
@@ -88,6 +92,12 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
       finishTime: finishTime.toISOString(),
     };
     queryAddCar(newCar);
+    
+    // Broadcast refresh so all devices update.
+    const bc = new BroadcastChannel('dashboard-updates');
+    bc.postMessage({ type: 'refresh' });
+    bc.close();
+
     setFormValues({
       plate: '',
       brand: '',
@@ -96,7 +106,7 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
       year: '',
       eta: '',
       notes: '',
-      scheduledTime: getCurrentTimeString() // reset to current time
+      scheduledTime: getCurrentTimeString()
     });
     setShowForm(false);
   };
@@ -115,15 +125,11 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
     }
     const countdown = etaMinutes * 60;
     const totalTime = countdown;
-    const today = new Date();
     const [hours, minutes] = scheduledTime.split(':').map(Number);
-    today.setHours(hours);
-    today.setMinutes(minutes);
-    today.setSeconds(0);
-    today.setMilliseconds(0);
-    const scheduledISO = today.toISOString();
-    const finishTime = new Date(today.getTime() + etaMinutes * 60000);
-
+    const scheduled = new Date(selectedDate);
+    scheduled.setHours(hours, minutes, 0, 0);
+    const scheduledISO = scheduled.toISOString();
+    const finishTime = new Date(scheduled.getTime() + etaMinutes * 60000);
     const updatedCar = {
       ...editingCar,
       plate,
@@ -138,11 +144,32 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
       finishTime: finishTime.toISOString(),
     };
     updateCar(updatedCar);
+
+    // Broadcast refresh so all devices update.
+    const bc = new BroadcastChannel('dashboard-updates');
+    bc.postMessage({ type: 'refresh' });
+    bc.close();
+
     setEditingCar(null);
     setEditValues({});
   };
 
-  // Calculate timeline position and vertical stacking.
+  const handleRemove = (id) => {
+    removeCar(id);
+    const bc = new BroadcastChannel('dashboard-updates');
+    bc.postMessage({ type: 'refresh' });
+    bc.close();
+  };
+
+  // Filter cars for selected date.
+  const filteredCars = cars.filter(car => {
+    const scheduled = new Date(car.scheduledTime);
+    return scheduled.getFullYear() === selectedDate.getFullYear() &&
+           scheduled.getMonth() === selectedDate.getMonth() &&
+           scheduled.getDate() === selectedDate.getDate();
+  });
+
+  // Calculate timeline positions.
   const getTimelinePosition = (car) => {
     if (!car.scheduledTime || !car.finishTime) return { left: 0, width: 0, topOffset: 0 };
     const scheduled = new Date(car.scheduledTime);
@@ -153,34 +180,44 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
     const duration = Math.max(0, finishMinutes - scheduledMinutes);
     const left = (offset / TOTAL_BUSINESS_MINUTES) * TIMELINE_WIDTH;
     const width = (duration / TOTAL_BUSINESS_MINUTES) * TIMELINE_WIDTH;
-    // Determine stacking if multiple cars in same minute slot.
-    const slotKey = scheduled.getHours() * 60 + scheduled.getMinutes();
-    const sameSlotCars = cars.filter(c => {
-      const dt = new Date(c.scheduledTime);
-      return dt.getHours() * 60 + dt.getMinutes() === slotKey;
-    });
-    const index = sameSlotCars.findIndex(c => c.id === car.id);
-    const topOffset = index * 50; // stack vertically (50px offset per overlapping car)
+    const currentStart = scheduled.getTime();
+    const currentFinish = finish.getTime();
+    const overlappingCount = filteredCars.filter(c => {
+      if (c.id === car.id) return false;
+      const start = new Date(c.scheduledTime).getTime();
+      const end = new Date(c.finishTime).getTime();
+      return (start < currentFinish && currentStart < end) && (c.id < car.id);
+    }).length;
+    const topOffset = overlappingCount * 50;
     return { left, width, topOffset };
   };
 
-  // Calculate progress for a car's wash. It is 0% if current time is before scheduled time.
-  // Otherwise, it's the fraction of time elapsed between scheduled and finish times.
   const getProgress = (car) => {
     const now = new Date();
     const scheduled = new Date(car.scheduledTime);
     const finish = new Date(car.finishTime);
-    if (now < scheduled) return 0;
+    if (now < scheduled) {
+      return { progress: 0, etaMs: finish - scheduled, finished: false };
+    }
+    if (now >= finish) {
+      return { progress: 1, etaMs: 0, finished: true };
+    }
     const elapsed = now - scheduled;
     const total = finish - scheduled;
-    const progress = Math.min(1, elapsed / total);
-    return progress;
+    return { progress: elapsed / total, etaMs: finish - now, finished: false };
   };
 
   const handleClearAll = () => {
-    if (window.confirm("Are you sure you want to clear all cars?")) {
+    if(window.confirm("Are you sure you want to clear all cars?")){
       clearCars();
+      const bc = new BroadcastChannel('dashboard-updates');
+      bc.postMessage({ type: 'refresh' });
+      bc.close();
     }
+  };
+
+  const handleTomorrow = () => {
+    setSelectedDate(prev => new Date(prev.getTime() + 86400 * 1000));
   };
 
   return (
@@ -188,25 +225,34 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
       <h1 style={{ fontSize: '28px', marginBottom: '10px' }}>
         Car Wash Business Dashboard - Timeline View
       </h1>
-
       <div style={{ marginBottom: '15px' }}>
-        <button
+        <button 
           onClick={() => setShowForm(true)}
           style={{ fontSize: '14px', padding: '5px 10px', marginRight: '10px' }}
         >
           Add Car
         </button>
-        <button
-          onClick={handleClearAll}
-          style={{ fontSize: '14px', padding: '5px 10px', backgroundColor: 'red', color: 'white' }}
+        <button 
+          onClick={handleClearAll} 
+          style={{ fontSize: '14px', padding: '5px 10px', backgroundColor: 'red', color: 'white', marginRight: '10px' }}
         >
           Clear All
         </button>
+        <button 
+          onClick={handleTomorrow} 
+          style={{ fontSize: '14px', padding: '5px 10px' }}
+        >
+          Tomorrow
+        </button>
       </div>
-
-      {/* Add Car Form */}
+      <div style={{ marginBottom: '20px', fontSize: '16px' }}>
+        Showing bookings for: {selectedDate.toLocaleDateString()}
+      </div>
       {showForm && (
-        <form onSubmit={handleFormSubmit} style={{ marginBottom: '20px', border: '1px solid #ccc', padding: '10px', borderRadius: '4px' }}>
+        <form 
+          onSubmit={handleFormSubmit} 
+          style={{ marginBottom: '20px', border: '1px solid #ccc', padding: '10px', borderRadius: '4px' }}
+        >
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
             <input 
               type="text" 
@@ -214,7 +260,7 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
               value={formValues.plate} 
               onChange={handleInputChange} 
               placeholder="License Plate" 
-              style={{ flex: '1 1 150px', padding: '5px' }} 
+              style={{ flex: '1 1 150px', padding: '5px' }}
             />
             <input 
               list="brands" 
@@ -223,7 +269,7 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
               value={formValues.brand} 
               onChange={handleInputChange} 
               placeholder="Brand" 
-              style={{ flex: '1 1 150px', padding: '5px' }}  
+              style={{ flex: '1 1 150px', padding: '5px' }}
             />
             <datalist id="brands">
               {popularBrands.map((b, index) => (
@@ -236,7 +282,7 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
               value={formValues.type} 
               onChange={handleInputChange} 
               placeholder="Type" 
-              style={{ flex: '1 1 150px', padding: '5px' }} 
+              style={{ flex: '1 1 150px', padding: '5px' }}
             />
             <input 
               type="text" 
@@ -244,7 +290,7 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
               value={formValues.color} 
               onChange={handleInputChange} 
               placeholder="Color" 
-              style={{ flex: '1 1 150px', padding: '5px' }} 
+              style={{ flex: '1 1 150px', padding: '5px' }}
             />
             <input 
               type="text" 
@@ -252,7 +298,7 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
               value={formValues.year} 
               onChange={handleInputChange} 
               placeholder="Year" 
-              style={{ flex: '1 1 150px', padding: '5px' }} 
+              style={{ flex: '1 1 150px', padding: '5px' }}
             />
             <input 
               type="text" 
@@ -260,7 +306,7 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
               value={formValues.eta} 
               onChange={handleInputChange} 
               placeholder="ETA (minutes)" 
-              style={{ flex: '1 1 150px', padding: '5px' }} 
+              style={{ flex: '1 1 150px', padding: '5px' }}
             />
             <input 
               type="time" 
@@ -268,7 +314,7 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
               value={formValues.scheduledTime} 
               onChange={handleInputChange} 
               placeholder="Scheduled Time" 
-              style={{ flex: '1 1 150px', padding: '5px' }} 
+              style={{ flex: '1 1 150px', padding: '5px' }}
             />
             <input 
               type="text" 
@@ -276,7 +322,7 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
               value={formValues.notes} 
               onChange={handleInputChange} 
               placeholder="Notes" 
-              style={{ flex: '1 1 150px', padding: '5px' }} 
+              style={{ flex: '1 1 150px', padding: '5px' }}
             />
           </div>
           <div style={{ marginTop: '10px' }}>
@@ -293,10 +339,8 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
           </div>
         </form>
       )}
-
-      {/* Timeline Container */}
+      {/* Timeline display */}
       <div style={{ position: 'relative', border: '1px solid #ccc', minHeight: '300px', width: '99vw', overflowX: 'auto', paddingTop: '40px' }}>
-        {/* Time markers on x-axis */}
         {Array.from({ length: TOTAL_BUSINESS_MINUTES + 1 }, (_, i) => {
           if (i % 60 === 0) {
             const timeInMinutes = BUSINESS_START + i;
@@ -318,10 +362,47 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
           }
           return null;
         })}
-        {/* Render each car block */}
-        {cars.map(car => {
+        {filteredCars.map(car => {
           const { left, width, topOffset } = getTimelinePosition(car);
-          const progress = getProgress(car);
+          const { progress, etaMs, finished } = getProgress(car);
+          let progressBarContent;
+          if (finished) {
+            progressBarContent = (
+              <div style={{ 
+                height: '100%', 
+                width: '100%', 
+                backgroundColor: '#ccc',
+                textAlign: 'center',
+                lineHeight: '50px',
+                fontSize: '12px'
+              }}>
+                Finished
+              </div>
+            );
+          } else if(new Date() < new Date(car.scheduledTime)){
+            progressBarContent = (
+              <div style={{ fontSize: '8px', textAlign: 'center', color: '#888' }}>
+                Wash booked for {new Date(car.scheduledTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </div>
+            );
+          } else {
+            const remainingMinutes = Math.floor(etaMs / 60000);
+            const remainingSeconds = ('0' + Math.floor((etaMs % 60000) / 1000)).slice(-2);
+            progressBarContent = (
+              <div style={{ 
+                height: '100%', 
+                width: `${progress * 100}%`, 
+                backgroundColor: '#4caf50',
+                textAlign: 'center',
+                lineHeight: '50px',
+                fontSize: '12px',
+                color: '#fff'
+              }}>
+                ETA: {remainingMinutes}m {remainingSeconds}s
+              </div>
+            );
+          }
+          
           return (
             <div
               key={car.id}
@@ -359,29 +440,22 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
                 <span>{car.plate} - {car.brand}</span>
+              </div>
+              <div style={{ marginTop: '4px', height: '6px', backgroundColor: '#eee', borderRadius: '3px', overflow: 'hidden' }}>
+                {progressBarContent}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2px' }}>
                 <button 
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    removeCar(car.id); 
-                  }} 
-                  style={{ background: 'red', color: 'white', border: 'none', borderRadius: '2px', fontSize: '10px', padding: '2px 4px', cursor: 'pointer' }}
-                  title="Delete this car"
+                  onClick={(e) => {
+                    // Instead of having the remove button on the timeline,
+                    // we remove the booking from within the edit popup.
+                    // So here we do nothing.
+                    e.stopPropagation();
+                  }}
+                  style={{ fontSize: '10px', padding: '2px 4px', marginRight: '2px', visibility: 'hidden' }}
                 >
                   X
                 </button>
-              </div>
-              {/* Progress Bar or message */}
-              <div style={{ marginTop: '4px', height: '6px', backgroundColor: '#eee', borderRadius: '3px', overflow: 'hidden' }}>
-                {new Date() < new Date(car.scheduledTime) ? (
-                  <div style={{ fontSize: '8px', textAlign: 'center', color: '#888' }}>
-                    Wash booked for {new Date(car.scheduledTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </div>
-                ) : (
-                  <div style={{ height: '100%', width: `${progress * 100}%`, backgroundColor: '#4caf50' }} />
-                )}
-              </div>
-              {/* +5 / -5 Buttons */}
-              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2px' }}>
                 <button 
                   onClick={(e) => {
                     e.stopPropagation();
@@ -407,8 +481,6 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
           );
         })}
       </div>
-
-      {/* Edit Modal */}
       {editingCar && (
         <div 
           style={{
@@ -434,6 +506,23 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
             onClick={e => e.stopPropagation()}
           >
             <h2>Edit Car Details</h2>
+            {/* Add Remove button here */}
+            <div style={{ textAlign: 'right' }}>
+              <button 
+                onClick={() => handleRemove(editingCar.id)}
+                style={{
+                  background: 'red',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '2px',
+                  fontSize: '12px',
+                  padding: '4px 8px',
+                  cursor: 'pointer'
+                }}
+              >
+                X Remove
+              </button>
+            </div>
             <form onSubmit={handleEditSubmit}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <input 
@@ -503,7 +592,11 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
                 <button type="submit" style={{ padding: '5px 10px', marginRight: '10px' }}>
                   Save
                 </button>
-                <button type="button" onClick={() => setEditingCar(null)} style={{ padding: '5px 10px' }}>
+                <button 
+                  type="button" 
+                  onClick={() => setEditingCar(null)} 
+                  style={{ padding: '5px 10px' }}
+                >
                   Cancel
                 </button>
               </div>
