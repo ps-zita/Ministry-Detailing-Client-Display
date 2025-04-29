@@ -1,79 +1,71 @@
 const express = require('express');
 const cors = require('cors');
-const fs = require('fs');
+const { Low, JSONFile } = require('lowdb');
 const path = require('path');
 
 const app = express();
 const PORT = 3001;
-const DATA_FILE = path.join(__dirname, 'cars.json');
+
+// Set up lowdb to use a JSON file for storage.
+const file = path.join(__dirname, 'db.json');
+const adapter = new JSONFile(file);
+const db = new Low(adapter);
+
+// Default data will be set when file is empty.
+async function initDB() {
+  await db.read();
+  db.data = db.data || { cars: [] };
+  await db.write();
+}
+initDB();
 
 app.use(express.json());
 app.use(cors());
 
-// Helper function: Read cars data from file.
-function readCars() {
-  try {
-    if (!fs.existsSync(DATA_FILE)) return [];
-    const data = fs.readFileSync(DATA_FILE, 'utf8');
-    return JSON.parse(data);
-  } catch (err) {
-    console.error('Error reading data file:', err);
-    return [];
-  }
-}
-
-// Helper function: Write cars data to file.
-function writeCars(cars) {
-  try {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(cars, null, 2));
-  } catch (err) {
-    console.error('Error writing data file:', err);
-  }
-}
-
 // GET all cars.
-app.get('/cars', (req, res) => {
-  console.log('GET /cars called');
-  const cars = readCars();
-  res.json(cars);
+app.get('/cars', async (req, res) => {
+  await db.read();
+  console.log("GET /cars request received.");
+  res.json(db.data.cars);
 });
 
-// POST a new car.
-app.post('/cars', (req, res) => {
-  const cars = readCars();
+// POST a new car booking.
+app.post('/cars', async (req, res) => {
+  await db.read();
   const newCar = req.body;
-  console.log('POST /cars called with:', newCar);
-  cars.push(newCar);
-  writeCars(cars);
+  console.log("POST /cars: Received new booking:", newCar);
+  db.data.cars.push(newCar);
+  await db.write();
   res.json(newCar);
 });
 
-// PUT update a car (for updating countdown or other fields).
-app.put('/cars/:id', (req, res) => {
-  const cars = readCars();
+// PUT to update an existing car booking.
+app.put('/cars/:id', async (req, res) => {
+  await db.read();
   const { id } = req.params;
   const updates = req.body;
-  const index = cars.findIndex(car => String(car.id) === id);
+  const index = db.data.cars.findIndex(car => String(car.id) === id);
   if (index !== -1) {
-    cars[index] = { ...cars[index], ...updates };
-    writeCars(cars);
-    console.log(`PUT /cars/${id} called. Updated car:`, cars[index]);
-    res.json(cars[index]);
+    db.data.cars[index] = { ...db.data.cars[index], ...updates };
+    await db.write();
+    console.log(`PUT /cars/${id} updated booking:`, db.data.cars[index]);
+    res.json(db.data.cars[index]);
   } else {
-    res.status(404).send("Car not found");
+    res.status(404).send("Booking not found");
   }
 });
 
-// DELETE a car.
-app.delete('/cars/:id', (req, res) => {
-  let cars = readCars();
+// DELETE a car booking.
+app.delete('/cars/:id', async (req, res) => {
+  await db.read();
   const { id } = req.params;
-  console.log(`DELETE /cars/${id} called`);
-  cars = cars.filter(car => String(car.id) !== id);
-  writeCars(cars);
+  console.log(`DELETE /cars/${id}: Removing booking.`);
+  db.data.cars = db.data.cars.filter(car => String(car.id) !== id);
+  await db.write();
   res.sendStatus(200);
 });
 
-app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+// Bind the server to all network interfaces.
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server is running on http://0.0.0.0:${PORT}`);
 });
