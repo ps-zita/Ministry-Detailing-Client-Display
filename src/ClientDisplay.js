@@ -1,18 +1,31 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
-  // If scheduledTime and finishTime exist, use a timer based on current time
-  if (scheduledTime && finishTime) {
-    const [now, setNow] = useState(new Date());
-    useEffect(() => {
+  // Always create the hook states unconditionally.
+  const [now, setNow] = useState(new Date());
+  const [remainingCount, setRemainingCount] = useState(countdown);
+
+  useEffect(() => {
+    // If scheduledTime & finishTime are provided, use the current time (now) updating every second.
+    if (scheduledTime && finishTime) {
       const timer = setInterval(() => setNow(new Date()), 1000);
       return () => clearInterval(timer);
-    }, []);
-    
+    } else {
+      // Otherwise update the remaining count.
+      setRemainingCount(countdown);
+      const timer = setInterval(() => {
+        setRemainingCount(prev => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [scheduledTime, finishTime, countdown]);
+
+  // If scheduledTime and finishTime exist, base the countdown on the current time.
+  if (scheduledTime && finishTime) {
     const scheduled = new Date(scheduledTime);
     const finish = new Date(finishTime);
 
-    // Before wash starts
+    // If current time is before the scheduled time.
     if (now < scheduled) {
       return (
         <div style={{
@@ -31,7 +44,8 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
         </div>
       );
     }
-    // After wash finished
+
+    // If current time is past the finish time.
     if (now >= finish) {
       return (
         <div style={{
@@ -58,6 +72,7 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
       );
     }
     
+    // Calculate progress based on the elapsed time.
     const elapsed = now - scheduled;
     const totalDuration = finish - scheduled;
     let progressPercentage = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
@@ -98,23 +113,7 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
     );
   }
 
-  // Fallback branch when scheduledTime/finishTime are not provided.
-  // Use an internal state that ticks down every second.
-  const [remainingCount, setRemainingCount] = useState(countdown);
-  useEffect(() => {
-    setRemainingCount(countdown);
-    const timer = setInterval(() => {
-      setRemainingCount(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [countdown]);
-
+  // Otherwise, use the fallback state-based countdown.
   let progressPercentage = totalTime > 0 ? ((totalTime - remainingCount) / totalTime) * 100 : 0;
   progressPercentage = Math.min(Math.max(progressPercentage, 0), 100);
   
