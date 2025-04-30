@@ -5,27 +5,30 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
   const [now, setNow] = useState(new Date());
   const [remainingCount, setRemainingCount] = useState(countdown);
 
+  // Unconditionally set up two timers.
+  // Timer for current time (used when scheduledTime and finishTime exist)
+  // Timer for remainingCount (fallback when scheduledTime/finishTime are not provided)
   useEffect(() => {
-    if (scheduledTime && finishTime) {
-      // Update "now" every second if scheduledTime and finishTime are provided.
-      const timer = setInterval(() => setNow(new Date()), 1000);
-      return () => clearInterval(timer);
-    } else {
-      // Otherwise, update the remainingCount every second.
-      setRemainingCount(countdown);
-      const timer = setInterval(() => {
-        setRemainingCount(prev => (prev > 0 ? prev - 1 : 0));
-      }, 1000);
-      return () => clearInterval(timer);
-    }
-  }, [scheduledTime, finishTime, countdown]);
+    const timerNow = setInterval(() => {
+      setNow(new Date());
+    }, 1000);
 
-  // If scheduledTime and finishTime exist, calculate progress and ETA based on current time.
+    const timerCount = setInterval(() => {
+      setRemainingCount(prev => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+
+    return () => {
+      clearInterval(timerNow);
+      clearInterval(timerCount);
+    };
+  }, [countdown]);
+
+  // If scheduledTime and finishTime exist, use "now" to calculate countdown.
   if (scheduledTime && finishTime) {
     const scheduled = new Date(scheduledTime);
     const finish = new Date(finishTime);
 
-    // Before wash has started.
+    // If the wash hasn't started yet.
     if (now < scheduled) {
       return (
         <div style={{
@@ -45,7 +48,7 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
       );
     }
 
-    // After wash has finished.
+    // If the wash is finished.
     if (now >= finish) {
       return (
         <div style={{
@@ -71,16 +74,17 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
         </div>
       );
     }
-
+    
+    // Calculate progress based on the elapsed time.
     const elapsed = now - scheduled;
     const totalDuration = finish - scheduled;
     let progressPercentage = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
     progressPercentage = Math.min(Math.max(progressPercentage, 0), 100);
-
+    
     const remainingMS = finish - now;
     const remainingMinutes = Math.floor(remainingMS / 60000);
     const remainingSeconds = ('0' + Math.floor((remainingMS % 60000) / 1000)).slice(-2);
-
+    
     return (
       <div style={{
         background: '#eee',
@@ -112,7 +116,7 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
     );
   }
 
-  // Fallback branch when scheduledTime/finishTime are not provided.
+  // Fallback: use the remainingCount state.
   let progressPercentage = totalTime > 0 ? ((totalTime - remainingCount) / totalTime) * 100 : 0;
   progressPercentage = Math.min(Math.max(progressPercentage, 0), 100);
 
