@@ -128,9 +128,9 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
 
 /*
   Updated CarCard for ClientDisplay:
-  - The first line displays the car's brand and type combined (i.e. "BRAND TYPE").
-  - Under that (if available) the wash type is displayed on a new line.
-  - Other details like countdown, scheduled/finish time, and notes are unchanged.
+  - The title now displays the car's brand and type combined (e.g. "SKODA SUV").
+  - The subtitle area below the title displays the wash type (e.g. "GOLD WASH").
+  - Remaining information like the progress bar and notes are unchanged.
 */
 const CarCard = ({ car }) => {
   const cardStyle = {
@@ -150,11 +150,9 @@ const CarCard = ({ car }) => {
       <div style={{ fontWeight: 'bold', fontSize: '48px', marginBottom: '10px' }}>
         {`${car.brand || ""} ${car.carType || ""}`}
       </div>
-      {car.washType && (
-        <div style={{ marginBottom: '10px', fontSize: '18px' }}>
-          {car.washType}
-        </div>
-      )}
+      <div style={{ marginBottom: '10px', fontSize: '18px', fontStyle: 'italic' }}>
+        {car.washType || ""}
+      </div>
       { car.countdown !== undefined &&
         <ProgressBar 
           countdown={car.countdown} 
