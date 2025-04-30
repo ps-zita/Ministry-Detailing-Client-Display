@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
   const now = new Date();
@@ -126,14 +126,6 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
   );
 };
 
-/*
-  Updated CarCard for ClientDisplay:
-  - Now displays three separate lines:
-    1. First line shows the brand (e.g., "SKODA")
-    2. Second line shows the carType (e.g., "SUV")
-    3. Third line shows the washType (e.g., "GOLD WASH")
-  - The progress bar and notes remain unchanged.
-*/
 const CarCard = ({ car }) => {
   const cardStyle = {
     background: 'linear-gradient(45deg, #74ebd5, #acb6e5)',
@@ -173,11 +165,30 @@ const CarCard = ({ car }) => {
   );
 };
 
-const ClientDisplay = ({ cars }) => {
-  // Hardcoded refresh every minute.
+const ClientDisplay = () => {
+  const [cars, setCars] = useState([]);
+  
+  // Function to fetch the list of cars from the backend.
+  const fetchCars = async () => {
+    try {
+      // Build the backend URL using the hostname so that it is accessible from other devices.
+      const host = window.location.hostname;
+      const response = await fetch(`http://${host}:3001/cars`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch cars');
+      }
+      const data = await response.json();
+      setCars(data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  // Fetch cars on mount and on every broadcast refresh event.
   useEffect(() => {
+    fetchCars();
     const interval = setInterval(() => {
-      window.location.reload();
+      fetchCars();
     }, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -187,7 +198,7 @@ const ClientDisplay = ({ cars }) => {
     const bc = new BroadcastChannel('dashboard-updates');
     bc.onmessage = (event) => {
       if (event.data && event.data.type === 'refresh') {
-        window.location.reload();
+        fetchCars();
       }
     };
     return () => bc.close();
