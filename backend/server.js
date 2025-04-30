@@ -6,7 +6,8 @@ const path = require('path');
 const app = express();
 const PORT = 3001;
 
-// Use a file named cars.json for storage instead of db.json.
+// Use cars.json for storage. This file will be located
+// in the same directory as server.js.
 const file = path.join(__dirname, 'cars.json');
 const adapter = new JSONFile(file);
 const db = new Low(adapter);
@@ -17,15 +18,15 @@ async function initDB() {
   } catch (err) {
     console.error("Error reading file:", err);
   }
-  // If file is empty then populate it with a default structure.
+  // Initialize db.data if file is empty
   db.data = db.data || { cars: [] };
   try {
     await db.write();
+    console.log("Database initialized in cars.json:", db.data);
   } catch (err) {
-    console.error("Error writing file:", err);
+    console.error("Error writing file during initialization:", err);
   }
 }
-
 initDB();
 
 app.use(express.json());
@@ -34,7 +35,7 @@ app.use(cors());
 // GET all cars.
 app.get('/cars', async (req, res) => {
   await db.read();
-  console.log("GET /cars request received; current cars:", db.data.cars);
+  console.log("GET /cars request received. Current bookings:", db.data.cars);
   res.json(db.data.cars);
 });
 
@@ -46,9 +47,9 @@ app.post('/cars', async (req, res) => {
   db.data.cars.push(newCar);
   try {
     await db.write();
-    console.log("cars.json updated after POST");
+    console.log("Booking successfully written to cars.json:", db.data.cars);
   } catch (err) {
-    console.error("Error writing after POST:", err);
+    console.error("Error writing booking to cars.json:", err);
   }
   res.json(newCar);
 });
@@ -65,7 +66,7 @@ app.put('/cars/:id', async (req, res) => {
       await db.write();
       console.log(`PUT /cars/${id} updated booking:`, db.data.cars[index]);
     } catch (err) {
-      console.error("Error writing after PUT:", err);
+      console.error("Error updating booking in cars.json:", err);
     }
     res.json(db.data.cars[index]);
   } else {
@@ -81,9 +82,9 @@ app.delete('/cars/:id', async (req, res) => {
   db.data.cars = db.data.cars.filter(car => String(car.id) !== id);
   try {
     await db.write();
-    console.log("cars.json updated after DELETE");
+    console.log("Booking removed. Updated cars.json:", db.data.cars);
   } catch (err) {
-    console.error("Error writing after DELETE:", err);
+    console.error("Error deleting booking from cars.json:", err);
   }
   res.sendStatus(200);
 });
