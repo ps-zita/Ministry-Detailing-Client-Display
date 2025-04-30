@@ -1,34 +1,35 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
   // Always initialize hooks unconditionally.
   const [now, setNow] = useState(new Date());
   const [remainingCount, setRemainingCount] = useState(countdown);
-
-  // Unconditionally set up two timers.
-  // Timer for current time (used when scheduledTime and finishTime exist)
-  // Timer for remainingCount (fallback when scheduledTime/finishTime are not provided)
+  
+  // Timer to update current time every second.
   useEffect(() => {
     const timerNow = setInterval(() => {
       setNow(new Date());
     }, 1000);
+    return () => clearInterval(timerNow);
+  }, []);
+  
+  // Timer to update fallback countdown only if scheduledTime/finishTime are not provided.
+  useEffect(() => {
+    if (!(scheduledTime && finishTime)) {
+      // Reset fallback countdown when countdown prop changes.
+      setRemainingCount(countdown);
+      const timerFallback = setInterval(() => {
+        setRemainingCount(prev => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+      return () => clearInterval(timerFallback);
+    }
+  }, [countdown, scheduledTime, finishTime]);
 
-    const timerCount = setInterval(() => {
-      setRemainingCount(prev => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
-
-    return () => {
-      clearInterval(timerNow);
-      clearInterval(timerCount);
-    };
-  }, [countdown]);
-
-  // If scheduledTime and finishTime exist, use "now" to calculate countdown.
+  // If scheduledTime and finishTime exist, use the "now" state.
   if (scheduledTime && finishTime) {
     const scheduled = new Date(scheduledTime);
     const finish = new Date(finishTime);
-
-    // If the wash hasn't started yet.
+    
     if (now < scheduled) {
       return (
         <div style={{
@@ -47,8 +48,7 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
         </div>
       );
     }
-
-    // If the wash is finished.
+    
     if (now >= finish) {
       return (
         <div style={{
@@ -75,7 +75,6 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
       );
     }
     
-    // Calculate progress based on the elapsed time.
     const elapsed = now - scheduled;
     const totalDuration = finish - scheduled;
     let progressPercentage = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
@@ -115,14 +114,14 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
       </div>
     );
   }
-
+  
   // Fallback: use the remainingCount state.
   let progressPercentage = totalTime > 0 ? ((totalTime - remainingCount) / totalTime) * 100 : 0;
   progressPercentage = Math.min(Math.max(progressPercentage, 0), 100);
-
+  
   const displayMinutes = Math.floor(remainingCount / 60);
   const displaySeconds = ('0' + (remainingCount % 60)).slice(-2);
-
+  
   return (
     <div style={{
       background: '#eee',
@@ -178,7 +177,7 @@ const CarCard = ({ car }) => {
       <div style={{ marginBottom: '10px', fontSize: '18px', fontStyle: 'italic' }}>
         {car.washType || ""}
       </div>
-      { car.countdown !== undefined && (
+      {car.countdown !== undefined && (
         <ProgressBar 
           countdown={car.countdown} 
           totalTime={car.totalTime}
