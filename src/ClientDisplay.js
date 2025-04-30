@@ -247,9 +247,7 @@ const ClientDisplay = () => {
       display: 'flex',
       height: '100vh',
       overflow: 'hidden',
-      background: 'linear-gradient(90deg, #0f0c29, #302b63, #24243e)',
-      transform: 'scale(0.75)',
-      transformOrigin: 'top left'
+      background: 'linear-gradient(90deg, #0f0c29, #302b63, #24243e)'
     }}>
       <div style={{ flex: 4, padding: '20px', overflowY: 'auto' }}>
         <h2 style={{ fontSize: '28px', marginBottom: '20px', color: 'white' }}>
