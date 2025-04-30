@@ -6,7 +6,7 @@ function App() {
   const [cars, setCars] = useState([]);
   const [view, setView] = useState('client'); // default view is ClientDisplay
 
-  // Fetch cars from backend
+  // Fetch cars from backend once on mount.
   useEffect(() => {
     fetchCars();
   }, []);
@@ -18,29 +18,32 @@ function App() {
       .catch(err => console.error('Error fetching cars:', err));
   };
 
-  // Global timer: update car countdown every second.
+  // Global timer: update car countdown every second without re-creating intervals.
   useEffect(() => {
     const timer = setInterval(() => {
-      cars.forEach(car => {
-        if (car.countdown > 0) {
-          const newCountdown = car.countdown - 1;
-          fetch(`http://localhost:3001/cars/${car.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ countdown: newCountdown })
-          })
-            .then(response => response.json())
-            .then(updatedCar => {
-              setCars(prevCars =>
-                prevCars.map(c => (c.id === updatedCar.id ? updatedCar : c))
-              );
+      setCars(currCars => {
+        currCars.forEach(car => {
+          if (car.countdown > 0) {
+            const newCountdown = car.countdown - 1;
+            fetch(`http://localhost:3001/cars/${car.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ countdown: newCountdown })
             })
-            .catch(err => console.error('Error updating car countdown:', err));
-        }
+              .then(response => response.json())
+              .then(updatedCar => {
+                setCars(prevCars =>
+                  prevCars.map(c => (c.id === updatedCar.id ? updatedCar : c))
+                );
+              })
+              .catch(err => console.error('Error updating car countdown:', err));
+          }
+        });
+        return currCars;
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [cars]);
+  }, []);
 
   const queryAddCar = (newCar) => {
     fetch('http://localhost:3001/cars', {
