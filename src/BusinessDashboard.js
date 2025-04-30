@@ -34,7 +34,7 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
   const [showForm, setShowForm] = useState(false);
   const [editingCar, setEditingCar] = useState(null);
 
-  // Updated state: using brand, carType, washType (instead of "type") along with eta, notes, scheduledTime.
+  // Updated state: using brand, carType, washType along with eta, notes, scheduledTime.
   const [formValues, setFormValues] = useState({
     brand: '',
     carType: '',
@@ -62,11 +62,16 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
   // Validate required fields: brand, carType, washType, eta, and scheduledTime.
   const handleFormSubmit = (e) => {
     e.preventDefault();
-    const { brand, carType, washType, eta, notes, scheduledTime } = formValues;
+    let { brand, carType, washType, eta, notes, scheduledTime } = formValues;
     if (!brand || !carType || !washType || !eta || !scheduledTime) {
       alert("Please provide Car Brand, Car Type, Wash Type, ETA, and Scheduled Time.");
       return;
     }
+    // Convert to uppercase so that lowercase input is properly normalized.
+    brand = brand.toUpperCase();
+    carType = carType.toUpperCase();
+    washType = washType.toUpperCase();
+
     const etaMinutes = parseInt(eta, 10);
     if (isNaN(etaMinutes)) {
       alert("ETA must be a number");
@@ -111,11 +116,16 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
 
   const handleEditSubmit = (e) => {
     e.preventDefault();
-    const { brand, carType, washType, eta, notes, scheduledTime } = editValues;
+    let { brand, carType, washType, eta, notes, scheduledTime } = editValues;
     if (!brand || !carType || !washType || !eta || !scheduledTime) {
       alert("Please provide Car Brand, Car Type, Wash Type, ETA, and Scheduled Time.");
       return;
     }
+    // Convert to uppercase
+    brand = brand.toUpperCase();
+    carType = carType.toUpperCase();
+    washType = washType.toUpperCase();
+
     const etaMinutes = parseInt(eta, 10);
     if (isNaN(etaMinutes)) {
       alert("ETA must be a number");
@@ -204,7 +214,7 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
   };
 
   const handleClearAll = () => {
-    if(window.confirm("Are you sure you want to clear all bookings?")){
+    if (window.confirm("Are you sure you want to clear all bookings?")) {
       clearCars();
       const bc = new BroadcastChannel('dashboard-updates');
       bc.postMessage({ type: 'refresh' });
@@ -274,7 +284,6 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
               placeholder="Wash Type (e.g., GOLD WASH)" 
               autoComplete="off"
               onKeyDown={(e) => {
-                // Prevent any unwanted popup when pressing space.
                 if(e.key === ' ') {
                   e.stopPropagation();
                 }
