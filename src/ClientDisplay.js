@@ -13,7 +13,7 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
     return () => clearInterval(timerNow);
   }, []);
   
-  // Timer to update fallback countdown only if scheduledTime/finishTime are not provided.
+  // Timer to update fallback countdown if scheduledTime/finishTime are not provided.
   useEffect(() => {
     if (!(scheduledTime && finishTime)) {
       // Reset fallback countdown when countdown prop changes.
@@ -25,7 +25,6 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
     }
   }, [countdown, scheduledTime, finishTime]);
 
-  // If scheduledTime and finishTime exist, use the "now" state.
   if (scheduledTime && finishTime) {
     const scheduled = new Date(scheduledTime);
     const finish = new Date(finishTime);
@@ -115,7 +114,6 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
     );
   }
   
-  // Fallback: use the remainingCount state.
   let progressPercentage = totalTime > 0 ? ((totalTime - remainingCount) / totalTime) * 100 : 0;
   progressPercentage = Math.min(Math.max(progressPercentage, 0), 100);
   
@@ -246,6 +244,9 @@ const ClientDisplay = () => {
       fontFamily: 'Arial, sans-serif',
       display: 'flex',
       height: '100vh',
+      width: '100vw',
+      margin: 0,
+      padding: 0,
       overflow: 'hidden',
       background: 'linear-gradient(90deg, #0f0c29, #302b63, #24243e)'
     }}>
