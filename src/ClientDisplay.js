@@ -128,10 +128,9 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
 
 /*
   Updated CarCard for ClientDisplay:
-  - First slot shows Car Brand (e.g., SKODA) in large bold text.
-  - Under it, the second slot shows the Type (e.g., SUV).
-  - If present, the Type of Wash appears on a new line below the type.
-  - Deprecated fields (like license plate) are removed.
+  - The first line displays the car's brand and type combined (i.e. "BRAND TYPE").
+  - Under that (if available) the wash type is displayed on a new line.
+  - Other details like countdown, scheduled/finish time, and notes are unchanged.
 */
 const CarCard = ({ car }) => {
   const cardStyle = {
@@ -140,7 +139,6 @@ const CarCard = ({ car }) => {
     padding: '20px',
     margin: '20px',
     width: '250px',
-    fontSize: '22px',
     position: 'relative',
     boxShadow: 'inset 0 0 20px rgba(0, 0, 0, 0.9)',
     overflow: 'hidden',
@@ -150,14 +148,11 @@ const CarCard = ({ car }) => {
   return (
     <div style={cardStyle}>
       <div style={{ fontWeight: 'bold', fontSize: '48px', marginBottom: '10px' }}>
-        {car.brand || ""}
+        {`${car.brand || ""} ${car.carType || ""}`}
       </div>
-      <div style={{ marginBottom: '10px' }}>
-        {car.type || ""}
-      </div>
-      { car.typeOfWash && (
+      {car.washType && (
         <div style={{ marginBottom: '10px', fontSize: '18px' }}>
-          {car.typeOfWash}
+          {car.washType}
         </div>
       )}
       { car.countdown !== undefined &&
