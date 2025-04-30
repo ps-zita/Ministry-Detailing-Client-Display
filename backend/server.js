@@ -7,7 +7,8 @@ const app = express();
 const PORT = 3001;
 
 // Set up lowdb to use a JSON file for storage.
-const file = path.join(__dirname, 'db.json');
+// Updated to use cars.json instead of db.json.
+const file = path.join(__dirname, 'cars.json');
 const adapter = new JSONFile(file);
 const db = new Low(adapter);
 
