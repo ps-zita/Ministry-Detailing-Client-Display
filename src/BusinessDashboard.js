@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 const BUSINESS_START = 8 * 60; // 8:00 AM in minutes
 const BUSINESS_END = 18 * 60;  // 6:00 PM in minutes
-const TOTAL_BUSINESS_MINUTES = BUSINESS_END - BUSINESS_START; 
+const TOTAL_BUSINESS_MINUTES = BUSINESS_END - BUSINESS_START;
 const TIMELINE_WIDTH = window.innerWidth * 0.99;
 
 const popularBrands = [
@@ -20,7 +20,7 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
     return `${hh}:${mm}`;
   };
 
-  // Broadcast channel listener so that when a car is added/removed/updated, all devices refresh.
+  // Broadcast channel listener to refresh all devices on changes.
   useEffect(() => {
     const bc = new BroadcastChannel('dashboard-updates');
     bc.onmessage = (event) => {
@@ -33,9 +33,9 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
 
   const [showForm, setShowForm] = useState(false);
   const [editingCar, setEditingCar] = useState(null);
-  // Removed color and year; preset type to a fixed value (e.g., "GOLD WASH")
+  // Remove plate, color, and year. The form now has only brand and type. 
+  // The "type" field is preset to "GOLD WASH" but can be cleared.
   const [formValues, setFormValues] = useState({
-    plate: '',
     brand: '',
     type: 'GOLD WASH',
     eta: '',
@@ -58,12 +58,12 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
     });
   };
 
+  // Validate required fields: brand, type, eta, and scheduledTime.
   const handleFormSubmit = (e) => {
     e.preventDefault();
-    const { plate, brand, type, eta, notes, scheduledTime } = formValues;
-    // Validate only required fields (plate, brand, type, eta, and scheduledTime)
-    if (!plate || !brand || !type || !eta || !scheduledTime) {
-      alert("Please provide plate, brand, type, ETA, and scheduled time.");
+    const { brand, type, eta, notes, scheduledTime } = formValues;
+    if (!brand || !type || !eta || !scheduledTime) {
+      alert("Please provide Car Brand, Type, ETA, and Scheduled Time.");
       return;
     }
     const etaMinutes = parseInt(eta, 10);
@@ -71,17 +71,16 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
       alert("ETA must be a number");
       return;
     }
-    const countdown = etaMinutes * 60;
+    const countdown = etaMinutes * 60; 
     const totalTime = countdown;
     const [hours, minutes] = scheduledTime.split(':').map(Number);
     const scheduled = new Date(selectedDate);
     scheduled.setHours(hours, minutes, 0, 0);
     const scheduledISO = scheduled.toISOString();
     const finishTime = new Date(scheduled.getTime() + etaMinutes * 60000);
-    // Create new car booking without color and year
+    // Create new car booking without license plate, color, or year.
     const newCar = {
       id: Date.now(),
-      plate,
       brand,
       type,
       countdown,
@@ -91,14 +90,13 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
       finishTime: finishTime.toISOString(),
     };
     queryAddCar(newCar);
-    
-    // Broadcast refresh so all devices update.
+
+    // Broadcast refresh to update views.
     const bc = new BroadcastChannel('dashboard-updates');
     bc.postMessage({ type: 'refresh' });
     bc.close();
 
     setFormValues({
-      plate: '',
       brand: '',
       type: 'GOLD WASH',
       eta: '',
@@ -110,9 +108,9 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
 
   const handleEditSubmit = (e) => {
     e.preventDefault();
-    const { plate, brand, type, eta, notes, scheduledTime } = editValues;
-    if (!plate || !brand || !type || !eta || !scheduledTime) {
-      alert("Please provide plate, brand, type, ETA and scheduled time");
+    const { brand, type, eta, notes, scheduledTime } = editValues;
+    if (!brand || !type || !eta || !scheduledTime) {
+      alert("Please provide Car Brand, Type, ETA, and Scheduled Time.");
       return;
     }
     const etaMinutes = parseInt(eta, 10);
@@ -129,7 +127,6 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
     const finishTime = new Date(scheduled.getTime() + etaMinutes * 60000);
     const updatedCar = {
       ...editingCar,
-      plate,
       brand,
       type,
       countdown,
@@ -140,7 +137,7 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
     };
     updateCar(updatedCar);
 
-    // Broadcast refresh so all devices update.
+    // Broadcast refresh.
     const bc = new BroadcastChannel('dashboard-updates');
     bc.postMessage({ type: 'refresh' });
     bc.close();
@@ -156,7 +153,7 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
     bc.close();
   };
 
-  // Filter cars for selected date.
+  // Filter bookings for the selected day.
   const filteredCars = cars.filter(car => {
     const scheduled = new Date(car.scheduledTime);
     return scheduled.getFullYear() === selectedDate.getFullYear() &&
@@ -203,7 +200,7 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
   };
 
   const handleClearAll = () => {
-    if(window.confirm("Are you sure you want to clear all cars?")){
+    if(window.confirm("Are you sure you want to clear all bookings?")){
       clearCars();
       const bc = new BroadcastChannel('dashboard-updates');
       bc.postMessage({ type: 'refresh' });
@@ -225,7 +222,7 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
           onClick={() => setShowForm(true)}
           style={{ fontSize: '14px', padding: '5px 10px', marginRight: '10px' }}
         >
-          Add Car
+          Add Booking
         </button>
         <button 
           onClick={handleClearAll} 
@@ -251,32 +248,18 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
             <input 
               type="text" 
-              name="plate" 
-              value={formValues.plate} 
-              onChange={handleInputChange} 
-              placeholder="License Plate" 
-              style={{ flex: '1 1 150px', padding: '5px' }}
-            />
-            <input 
-              list="brands" 
-              type="text" 
               name="brand" 
               value={formValues.brand} 
               onChange={handleInputChange} 
-              placeholder="Brand" 
+              placeholder="Car Brand (e.g., SKODA)" 
               style={{ flex: '1 1 150px', padding: '5px' }}
             />
-            <datalist id="brands">
-              {popularBrands.map((b, index) => (
-                <option key={index} value={b} />
-              ))}
-            </datalist>
             <input 
               type="text" 
               name="type" 
               value={formValues.type} 
               onChange={handleInputChange} 
-              placeholder="Type of Wash (e.g., GOLD WASH)" 
+              placeholder="Type (e.g., SUV)" 
               style={{ flex: '1 1 150px', padding: '5px' }}
             />
             <input 
@@ -324,7 +307,7 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
           if (i % 60 === 0) {
             const timeInMinutes = BUSINESS_START + i;
             const hr = Math.floor(timeInMinutes / 60);
-            const min = (timeInMinutes % 60).toString().padStart(2, '0');
+            const min = String(timeInMinutes % 60).padStart(2, '0');
             return (
               <div 
                 key={i}
@@ -391,7 +374,6 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
                 const hh = scheduledDate.getHours().toString().padStart(2, '0');
                 const mm = scheduledDate.getMinutes().toString().padStart(2, '0');
                 setEditValues({
-                  plate: car.plate,
                   brand: car.brand,
                   type: car.type,
                   eta: Math.round(car.totalTime / 60).toString(),
@@ -413,24 +395,26 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
                 overflow: 'hidden',
                 boxSizing: 'border-box'
               }}
-              title={`${car.plate} - ${car.brand}`}
+              title={`${car.brand} ${car.type}`}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
-                <span>{car.plate} - {car.brand}</span>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                fontSize: '12px'
+              }}>
+                {car.brand || ""} {car.type || ""}
               </div>
-              <div style={{ marginTop: '4px', height: '6px', backgroundColor: '#eee', borderRadius: '3px', overflow: 'hidden' }}>
+              <div style={{
+                marginTop: '4px',
+                height: '6px',
+                backgroundColor: '#eee',
+                borderRadius: '3px',
+                overflow: 'hidden'
+              }}>
                 {progressBarContent}
               </div>
               <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2px' }}>
-                <button 
-                  onClick={(e) => {
-                    // Remove button is available in edit popup.
-                    e.stopPropagation();
-                  }}
-                  style={{ fontSize: '10px', padding: '2px 4px', marginRight: '2px', visibility: 'hidden' }}
-                >
-                  X
-                </button>
                 <button 
                   onClick={(e) => {
                     e.stopPropagation();
@@ -480,7 +464,7 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
             }}
             onClick={e => e.stopPropagation()}
           >
-            <h2>Edit Car Details</h2>
+            <h2>Edit Booking</h2>
             <div style={{ textAlign: 'right' }}>
               <button 
                 onClick={() => handleRemove(editingCar.id)}
@@ -499,13 +483,7 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
             </div>
             <form onSubmit={handleEditSubmit}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <input 
-                  type="text" 
-                  name="plate" 
-                  value={editValues.plate || ''} 
-                  onChange={handleEditChange} 
-                  placeholder="License Plate" 
-                />
+                {/* Editing no longer includes License Plate */}
                 <input 
                   list="brands" 
                   type="text" 
@@ -524,7 +502,7 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
                   name="type" 
                   value={editValues.type || ''} 
                   onChange={handleEditChange} 
-                  placeholder="Type of Wash (e.g., GOLD WASH)" 
+                  placeholder="Type (e.g., SUV)" 
                 />
                 <input 
                   type="text" 
