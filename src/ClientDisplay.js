@@ -126,9 +126,15 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
   );
 };
 
+/*
+  Updated CarCard for ClientDisplay:
+  - First slot: Car Brand
+  - Second slot: Type
+  - Uses empty strings as fallbacks so old "undefined" values are not shown.
+*/
 const CarCard = ({ car }) => {
   const cardStyle = {
-    background: 'linear-gradient(45deg, purple, pink)',
+    background: 'linear-gradient(45deg, #74ebd5, #acb6e5)',
     borderRadius: '12px',
     padding: '20px',
     margin: '20px',
@@ -143,10 +149,10 @@ const CarCard = ({ car }) => {
   return (
     <div style={cardStyle}>
       <div style={{ fontWeight: 'bold', fontSize: '48px', marginBottom: '10px', position: 'relative' }}>
-        {car.plate}
+        {car.brand || ""}
       </div>
       <div style={{ marginBottom: '10px', position: 'relative' }}>
-        {`${car.color} ${car.brand} ${car.type} ${car.year}`}
+        {car.type || ""}
       </div>
       { car.countdown !== undefined &&
         <ProgressBar 
@@ -157,7 +163,7 @@ const CarCard = ({ car }) => {
         />
       }
       <div style={{ marginTop: '10px', fontStyle: 'italic', color: '#555', position: 'relative' }}>
-        Notes: {car.notes || 'No notes'}
+        Notes: {car.notes || "No notes"}
       </div>
     </div>
   );
@@ -204,7 +210,6 @@ const ClientDisplay = ({ cars }) => {
     display: 'flex',
     height: '100vh',
     overflow: 'hidden',
-    // Updated gradient using the provided colors.
     background: 'linear-gradient(90deg, #0f0c29, #302b63, #24243e)'
   };
 
