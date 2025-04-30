@@ -1,20 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
-  // Add a local state for the current time that updates every second.
+  // Update current time every second for a live countdown
   const [now, setNow] = useState(new Date());
-
   useEffect(() => {
-    const timer = setInterval(() => {
-      setNow(new Date());
-    }, 1000);
+    const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
-
+  
   if (scheduledTime && finishTime) {
     const scheduled = new Date(scheduledTime);
     const finish = new Date(finishTime);
-
+    
     if (now < scheduled) {
       return (
         <div style={{
@@ -33,7 +30,7 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
         </div>
       );
     }
-
+    
     if (now >= finish) {
       return (
         <div style={{
@@ -59,16 +56,16 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
         </div>
       );
     }
-
+    
     const elapsed = now - scheduled;
     const totalDuration = finish - scheduled;
     let progressPercentage = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
     progressPercentage = Math.min(Math.max(progressPercentage, 0), 100);
-
+    
     const remainingMS = finish - now;
     const remainingMinutes = Math.floor(remainingMS / 60000);
     const remainingSeconds = ('0' + Math.floor((remainingMS % 60000) / 1000)).slice(-2);
-
+    
     return (
       <div style={{
         background: '#eee',
@@ -99,10 +96,10 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
       </div>
     );
   }
-
+  
   let progressPercentage = totalTime > 0 ? ((totalTime - countdown) / totalTime) * 100 : 0;
   progressPercentage = Math.min(Math.max(progressPercentage, 0), 100);
-
+  
   return (
     <div style={{
       background: '#eee',
@@ -176,10 +173,9 @@ const CarCard = ({ car }) => {
 const ClientDisplay = () => {
   const [cars, setCars] = useState([]);
 
-  // Function to fetch the list of cars from the backend.
+  // Fetch cars from backend using host specified to allow external devices.
   const fetchCars = async () => {
     try {
-      // Build the backend URL using the hostname
       const host = window.location.hostname;
       const response = await fetch(`http://${host}:3001/cars`);
       if (!response.ok) {
@@ -192,16 +188,14 @@ const ClientDisplay = () => {
     }
   };
 
-  // Fetch cars on mount and every minute.
+  // Fetch on mount and every minute.
   useEffect(() => {
     fetchCars();
-    const interval = setInterval(() => {
-      fetchCars();
-    }, 60000);
+    const interval = setInterval(fetchCars, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // BroadcastChannel listener to refresh the display.
+  // Listen to broadcast channel for refresh.
   useEffect(() => {
     const bc = new BroadcastChannel('dashboard-updates');
     bc.onmessage = (event) => {
@@ -228,82 +222,93 @@ const ClientDisplay = () => {
     return car.countdown === 0;
   });
 
-  const containerStyle = {
-    fontFamily: 'Arial, sans-serif',
-    display: 'flex',
-    height: '100vh',
-    overflow: 'hidden',
-    background: 'linear-gradient(90deg, #0f0c29, #302b63, #24243e)'
-  };
-
-  const leftSectionStyle = {
-    flex: 4,
-    padding: '20px',
-    overflowY: 'auto'
-  };
-
-  const rightSectionStyle = {
-    flex: 1,
-    padding: '20px',
-    borderLeft: '2px solid white',
-    overflow: 'hidden',
-    position: 'relative'
-  };
-
-  const headingStyle = {
-    fontSize: '28px',
-    marginBottom: '20px',
-    color: 'white'
-  };
-
-  // Infinite marquee effect for finished cars.
-  const finishedOuterRef = useRef(null);
-  const finishedContentRef = useRef(null);
-
-  useEffect(() => {
-    if (finishedCars.length >= 4 && finishedContentRef.current) {
-      const content = finishedContentRef.current;
-      const originalHeight = content.offsetHeight / 2;
-      const speed = 30;
-      const duration = originalHeight / speed;
-      content.style.animation = `verticalMarquee ${duration}s linear infinite`;
-    } else if (finishedContentRef.current) {
-      finishedContentRef.current.style.animation = 'none';
-    }
-  }, [finishedCars]);
-
   return (
-    <div style={containerStyle}>
-      <div style={leftSectionStyle}>
-        <h2 style={headingStyle}>Cars In Progress</h2>
+    <div className="client-display-container" style={{
+      fontFamily: 'Arial, sans-serif',
+      display: 'flex',
+      height: '100vh',
+      overflow: 'hidden',
+      background: 'linear-gradient(90deg, #0f0c29, #302b63, #24243e)'
+    }}>
+      <style>{`
+        .client-display-container {
+          display: flex;
+        }
+        .client-display-left {
+          flex: 4;
+          padding: 20px;
+          overflow-y: auto;
+        }
+        .client-display-right {
+          flex: 1;
+          padding: 20px;
+          border-left: 2px solid white;
+          overflow: hidden;
+          position: relative;
+        }
+        @media (max-width: 768px) {
+          .client-display-container {
+            flex-direction: column;
+          }
+          .client-display-left, .client-display-right {
+            flex: 1;
+            padding: 10px;
+          }
+          .client-display-right {
+            border-left: none;
+            border-top: 2px solid white;
+          }
+        }
+      `}</style>
+      <div className="client-display-left">
+        <h2 style={{ fontSize: '28px', marginBottom: '20px', color: 'white' }}>Cars In Progress</h2>
         <div style={{ display: 'flex', flexWrap: 'wrap' }}>
           {inProgressCars.map(car => (
             <CarCard key={car.id} car={car} />
           ))}
         </div>
       </div>
-      <div style={rightSectionStyle}>
-        <h2 style={headingStyle}>Finished Cars</h2>
-        <style>{`
-          @keyframes verticalMarquee {
-            from { transform: translateY(0); }
-            to { transform: translateY(-50%); }
-          }
-        `}</style>
-        <div ref={finishedOuterRef} style={{ height: '100%', overflow: 'hidden' }}>
-          <div
-            ref={finishedContentRef}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '20px'
-            }}
-          >
-            {finishedCars.map(car => (
-              <CarCard key={car.id} car={car} />
-            ))}
-          </div>
+      <div className="client-display-right">
+        <h2 style={{ fontSize: '28px', marginBottom: '20px', color: 'white' }}>Finished Cars</h2>
+        <div style={{ height: '100%', overflow: 'hidden' }}>
+          <FinishedCarsMarquee finishedCars={finishedCars} />
         </div>
+      </div>
+    </div>
+  );
+};
+
+const FinishedCarsMarquee = ({ finishedCars }) => {
+  const finishedOuterRef = useRef(null);
+  const finishedContentRef = useRef(null);
+  
+  useEffect(() => {
+    if (finishedCars.length >= 4 && finishedContentRef.current) {
+      const content = finishedContentRef.current;
+      const originalHeight = content.offsetHeight / 2;
+      const speed = 30; // pixels per second
+      const duration = originalHeight / speed;
+      content.style.animation = `verticalMarquee ${duration}s linear infinite`;
+    } else if (finishedContentRef.current) {
+      finishedContentRef.current.style.animation = 'none';
+    }
+  }, [finishedCars]);
+  
+  return (
+    <div ref={finishedOuterRef} style={{ height: '100%', overflow: 'hidden' }}>
+      <style>{`
+        @keyframes verticalMarquee {
+          from { transform: translateY(0); }
+          to { transform: translateY(-50%); }
+        }
+      `}</style>
+      <div 
+        ref={finishedContentRef} 
+        style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
+      >
+        {finishedCars.map(car => (
+          <CarCard key={car.id} car={car} />
+        ))}
       </div>
     </div>
   );
