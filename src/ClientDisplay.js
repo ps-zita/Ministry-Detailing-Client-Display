@@ -1,12 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
-  const now = new Date();
-  
+  // Add a local state for the current time that updates every second.
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   if (scheduledTime && finishTime) {
     const scheduled = new Date(scheduledTime);
     const finish = new Date(finishTime);
-    
+
     if (now < scheduled) {
       return (
         <div style={{
@@ -25,7 +33,7 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
         </div>
       );
     }
-    
+
     if (now >= finish) {
       return (
         <div style={{
@@ -51,16 +59,16 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
         </div>
       );
     }
-    
+
     const elapsed = now - scheduled;
     const totalDuration = finish - scheduled;
     let progressPercentage = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
     progressPercentage = Math.min(Math.max(progressPercentage, 0), 100);
-    
+
     const remainingMS = finish - now;
     const remainingMinutes = Math.floor(remainingMS / 60000);
     const remainingSeconds = ('0' + Math.floor((remainingMS % 60000) / 1000)).slice(-2);
-    
+
     return (
       <div style={{
         background: '#eee',
@@ -91,10 +99,10 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
       </div>
     );
   }
-  
+
   let progressPercentage = totalTime > 0 ? ((totalTime - countdown) / totalTime) * 100 : 0;
   progressPercentage = Math.min(Math.max(progressPercentage, 0), 100);
-  
+
   return (
     <div style={{
       background: '#eee',
@@ -167,11 +175,11 @@ const CarCard = ({ car }) => {
 
 const ClientDisplay = () => {
   const [cars, setCars] = useState([]);
-  
+
   // Function to fetch the list of cars from the backend.
   const fetchCars = async () => {
     try {
-      // Build the backend URL using the hostname so that it is accessible from other devices.
+      // Build the backend URL using the hostname
       const host = window.location.hostname;
       const response = await fetch(`http://${host}:3001/cars`);
       if (!response.ok) {
@@ -184,7 +192,7 @@ const ClientDisplay = () => {
     }
   };
 
-  // Fetch cars on mount and on every broadcast refresh event.
+  // Fetch cars on mount and every minute.
   useEffect(() => {
     fetchCars();
     const interval = setInterval(() => {
