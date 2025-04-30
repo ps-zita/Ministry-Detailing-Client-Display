@@ -11,7 +11,7 @@ const popularBrands = [
   "Dodge", "Jeep", "GMC", "Cadillac", "Acura", "Infiniti", "Volvo", "Suzuki"
 ];
 
-const BusinessDashboard = ({ cars, queryAddCar, adjustTime, clearCars }) => {
+const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar, clearCars }) => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const getCurrentTimeString = () => {
     const now = new Date();
@@ -20,7 +20,7 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, clearCars }) => {
     return `${hh}:${mm}`;
   };
 
-  // Broadcast channel listener to refresh on changes.
+  // Broadcast channel listener to refresh all devices on changes.
   useEffect(() => {
     const bc = new BroadcastChannel('dashboard-updates');
     bc.onmessage = (event) => {
@@ -32,16 +32,20 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, clearCars }) => {
   }, []);
 
   const [showForm, setShowForm] = useState(false);
-  // Removed field "plate" along with color and year.
-  // Now form has: brand, type, typeOfWash, eta, scheduledTime, notes.
+  const [editingCar, setEditingCar] = useState(null);
+
+  // Changed state:
+  // • Removed license plate (and a "type" preset field for wash type).
+  // • Added "carType" for car type (like SUV or coupe) and "washType" for type of wash.
   const [formValues, setFormValues] = useState({
     brand: '',
-    type: '',
-    typeOfWash: '', // Unpopulated by default
+    carType: '',
+    washType: '',
     eta: '',
     notes: '',
     scheduledTime: getCurrentTimeString()
   });
+  const [editValues, setEditValues] = useState({});
 
   const handleInputChange = (e) => {
     setFormValues({
@@ -50,13 +54,68 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, clearCars }) => {
     });
   };
 
-  // In business dashboard, we now do NOT trigger any onClick popup.
-  // (Thus, we do not include editing functionality.)
+  const handleEditChange = (e) => {
+    setEditValues({
+      ...editValues,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  // Validate required fields: brand, carType, washType, eta, and scheduledTime.
   const handleFormSubmit = (e) => {
     e.preventDefault();
-    const { brand, type, typeOfWash, eta, notes, scheduledTime } = formValues;
-    if (!brand || !type || !eta || !scheduledTime) {
-      alert("Please provide Car Brand, Type, ETA, and Scheduled Time.");
+    const { brand, carType, washType, eta, notes, scheduledTime } = formValues;
+    if (!brand || !carType || !washType || !eta || !scheduledTime) {
+      alert("Please provide Car Brand, Car Type, Wash Type, ETA, and Scheduled Time.");
+      return;
+    }
+    const etaMinutes = parseInt(eta, 10);
+    if (isNaN(etaMinutes)) {
+      alert("ETA must be a number");
+      return;
+    }
+    const countdown = etaMinutes * 60; 
+    const totalTime = countdown;
+    const [hours, minutes] = scheduledTime.split(':').map(Number);
+    const scheduled = new Date(selectedDate);
+    scheduled.setHours(hours, minutes, 0, 0);
+    const scheduledISO = scheduled.toISOString();
+    const finishTime = new Date(scheduled.getTime() + etaMinutes * 60000);
+    // Create new car booking with new fields.
+    const newCar = {
+      id: Date.now(),
+      brand,
+      carType,
+      washType,
+      countdown,
+      totalTime,
+      notes: notes || '',
+      scheduledTime: scheduledISO,
+      finishTime: finishTime.toISOString(),
+    };
+    queryAddCar(newCar);
+
+    // Broadcast refresh to update views.
+    const bc = new BroadcastChannel('dashboard-updates');
+    bc.postMessage({ type: 'refresh' });
+    bc.close();
+
+    setFormValues({
+      brand: '',
+      carType: '',
+      washType: '',
+      eta: '',
+      notes: '',
+      scheduledTime: getCurrentTimeString()
+    });
+    setShowForm(false);
+  };
+
+  const handleEditSubmit = (e) => {
+    e.preventDefault();
+    const { brand, carType, washType, eta, notes, scheduledTime } = editValues;
+    if (!brand || !carType || !washType || !eta || !scheduledTime) {
+      alert("Please provide Car Brand, Car Type, Wash Type, ETA, and Scheduled Time.");
       return;
     }
     const etaMinutes = parseInt(eta, 10);
@@ -71,33 +130,79 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, clearCars }) => {
     scheduled.setHours(hours, minutes, 0, 0);
     const scheduledISO = scheduled.toISOString();
     const finishTime = new Date(scheduled.getTime() + etaMinutes * 60000);
-    const newBooking = {
-      id: Date.now(),
+    const updatedCar = {
+      ...editingCar,
       brand,
-      type,
-      typeOfWash,  // could be empty
+      carType,
+      washType,
       countdown,
       totalTime,
       notes: notes || '',
       scheduledTime: scheduledISO,
       finishTime: finishTime.toISOString(),
     };
-    queryAddCar(newBooking);
+    updateCar(updatedCar);
 
-    // Broadcast refresh so all devices update.
+    // Broadcast refresh.
     const bc = new BroadcastChannel('dashboard-updates');
     bc.postMessage({ type: 'refresh' });
     bc.close();
 
-    setFormValues({
-      brand: '',
-      type: '',
-      typeOfWash: '',
-      eta: '',
-      notes: '',
-      scheduledTime: getCurrentTimeString()
-    });
-    setShowForm(false);
+    setEditingCar(null);
+    setEditValues({});
+  };
+
+  const handleRemove = (id) => {
+    removeCar(id);
+    const bc = new BroadcastChannel('dashboard-updates');
+    bc.postMessage({ type: 'refresh' });
+    bc.close();
+  };
+
+  // Filter bookings for the selected day.
+  const filteredCars = cars.filter(car => {
+    const scheduled = new Date(car.scheduledTime);
+    return scheduled.getFullYear() === selectedDate.getFullYear() &&
+           scheduled.getMonth() === selectedDate.getMonth() &&
+           scheduled.getDate() === selectedDate.getDate();
+  });
+
+  // Calculate timeline positions.
+  const getTimelinePosition = (car) => {
+    if (!car.scheduledTime || !car.finishTime) return { left: 0, width: 0, topOffset: 0 };
+    const scheduled = new Date(car.scheduledTime);
+    const finish = new Date(car.finishTime);
+    const scheduledMinutes = scheduled.getHours() * 60 + scheduled.getMinutes();
+    const finishMinutes = finish.getHours() * 60 + finish.getMinutes();
+    const offset = Math.max(0, scheduledMinutes - BUSINESS_START);
+    const duration = Math.max(0, finishMinutes - scheduledMinutes);
+    const left = (offset / TOTAL_BUSINESS_MINUTES) * TIMELINE_WIDTH;
+    const width = (duration / TOTAL_BUSINESS_MINUTES) * TIMELINE_WIDTH;
+    const currentStart = scheduled.getTime();
+    const currentFinish = finish.getTime();
+    const overlappingCount = filteredCars.filter(c => {
+      if (c.id === car.id) return false;
+      const start = new Date(c.scheduledTime).getTime();
+      const end = new Date(c.finishTime).getTime();
+      return (start < currentFinish && currentStart < end) && (c.id < car.id);
+    }).length;
+    const topOffset = overlappingCount * 50;
+    return { left, width, topOffset };
+  };
+
+  const getProgress = (car) => {
+    const now = new Date();
+    const scheduled = new Date(car.scheduledTime);
+    const finish = new Date(car.finishTime);
+    if (now < scheduled) {
+      return { progress: 0, etaMs: finish - scheduled, finished: false };
+    }
+    if (now >= finish) {
+      return { progress: 1, etaMs: 0, finished: true };
+    }
+    const elapsed = now - scheduled;
+    const total = finish - scheduled;
+    return { progress: elapsed / total, etaMs: finish - now, finished: false };
   };
 
   const handleClearAll = () => {
@@ -111,50 +216,6 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, clearCars }) => {
 
   const handleTomorrow = () => {
     setSelectedDate(prev => new Date(prev.getTime() + 86400 * 1000));
-  };
-
-  // Filter bookings for selected date.
-  const filteredBookings = cars.filter(car => {
-    const scheduled = new Date(car.scheduledTime);
-    return scheduled.getFullYear() === selectedDate.getFullYear() &&
-           scheduled.getMonth() === selectedDate.getMonth() &&
-           scheduled.getDate() === selectedDate.getDate();
-  });
-
-  // Calculate timeline positions.
-  const getTimelinePosition = (booking) => {
-    if (!booking.scheduledTime || !booking.finishTime) return { left: 0, width: 0, topOffset: 0 };
-    const scheduled = new Date(booking.scheduledTime);
-    const finish = new Date(booking.finishTime);
-    const scheduledMinutes = scheduled.getHours() * 60 + scheduled.getMinutes();
-    const finishMinutes = finish.getHours() * 60 + finish.getMinutes();
-    const offset = Math.max(0, scheduledMinutes - BUSINESS_START);
-    const duration = Math.max(0, finishMinutes - scheduledMinutes);
-    const left = (offset / TOTAL_BUSINESS_MINUTES) * TIMELINE_WIDTH;
-    const width = (duration / TOTAL_BUSINESS_MINUTES) * TIMELINE_WIDTH;
-    const overlappingCount = filteredBookings.filter(b => {
-      if (b.id === booking.id) return false;
-      const bStart = new Date(b.scheduledTime).getTime();
-      const bEnd = new Date(b.finishTime).getTime();
-      return (bStart < new Date(booking.finishTime).getTime() && new Date(booking.scheduledTime).getTime() < bEnd) && (b.id < booking.id);
-    }).length;
-    const topOffset = overlappingCount * 50;
-    return { left, width, topOffset };
-  };
-
-  const getProgress = (booking) => {
-    const now = new Date();
-    const scheduled = new Date(booking.scheduledTime);
-    const finish = new Date(booking.finishTime);
-    if (now < scheduled) {
-      return { progress: 0, etaMs: finish - scheduled, finished: false };
-    }
-    if (now >= finish) {
-      return { progress: 1, etaMs: 0, finished: true };
-    }
-    const elapsed = now - scheduled;
-    const total = finish - scheduled;
-    return { progress: elapsed / total, etaMs: finish - now, finished: false };
   };
 
   return (
@@ -201,18 +262,25 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, clearCars }) => {
             />
             <input 
               type="text" 
-              name="type" 
-              value={formValues.type} 
+              name="carType" 
+              value={formValues.carType} 
               onChange={handleInputChange} 
-              placeholder="Type (e.g., SUV or Coupe)" 
+              placeholder="Type (e.g., SUV)" 
               style={{ flex: '1 1 150px', padding: '5px' }}
             />
             <input 
               type="text" 
-              name="typeOfWash" 
-              value={formValues.typeOfWash} 
+              name="washType" 
+              value={formValues.washType} 
               onChange={handleInputChange} 
               placeholder="Type of Wash" 
+              autoComplete="off"
+              onKeyDown={(e) => {
+                // Prevent any unwanted popup when pressing space.
+                if(e.key === ' ') {
+                  e.stopPropagation();
+                }
+              }}
               style={{ flex: '1 1 150px', padding: '5px' }}
             />
             <input 
@@ -321,7 +389,20 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, clearCars }) => {
           return (
             <div
               key={car.id}
-              // Disabled click popup in business dashboard.
+              onClick={() => {
+                setEditingCar(car);
+                const scheduledDate = new Date(car.scheduledTime);
+                const hh = scheduledDate.getHours().toString().padStart(2, '0');
+                const mm = scheduledDate.getMinutes().toString().padStart(2, '0');
+                setEditValues({
+                  brand: car.brand,
+                  carType: car.carType,
+                  washType: car.washType,
+                  eta: Math.round(car.totalTime / 60).toString(),
+                  notes: car.notes,
+                  scheduledTime: `${hh}:${mm}`
+                });
+              }}
               style={{
                 position: 'absolute',
                 left: left,
@@ -332,11 +413,11 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, clearCars }) => {
                 border: '1px solid #555',
                 borderRadius: '4px',
                 padding: '4px',
-                cursor: 'default',
+                cursor: 'pointer',
                 overflow: 'hidden',
                 boxSizing: 'border-box'
               }}
-              title={`${car.brand} ${car.type}`}
+              title={`${car.brand} ${car.carType} - ${car.washType}`}
             >
               <div style={{
                 display: 'flex',
@@ -344,7 +425,7 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, clearCars }) => {
                 alignItems: 'center',
                 fontSize: '12px'
               }}>
-                {car.brand || ""} {car.type || ""}
+                {car.brand || ""} {car.carType || ""}
               </div>
               <div style={{
                 marginTop: '4px',
@@ -355,10 +436,146 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, clearCars }) => {
               }}>
                 {progressBarContent}
               </div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2px' }}>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    adjustTime(car.id, 5);
+                  }}
+                  style={{ fontSize: '10px', padding: '2px 4px', marginRight: '2px' }}
+                  title="Add 5 minutes"
+                >
+                  +5
+                </button>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    adjustTime(car.id, -5);
+                  }}
+                  style={{ fontSize: '10px', padding: '2px 4px' }}
+                  title="Subtract 5 minutes"
+                >
+                  -5
+                </button>
+              </div>
             </div>
           );
         })}
       </div>
+      {editingCar && (
+        <div 
+          style={{
+            position: 'fixed',
+            left: 0,
+            top: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+          onClick={() => setEditingCar(null)}
+        >
+          <div 
+            style={{
+              backgroundColor: '#fff',
+              padding: '20px',
+              borderRadius: '4px',
+              minWidth: '300px'
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <h2>Edit Booking</h2>
+            <div style={{ textAlign: 'right' }}>
+              <button 
+                onClick={() => handleRemove(editingCar.id)}
+                style={{
+                  background: 'red',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '2px',
+                  fontSize: '12px',
+                  padding: '4px 8px',
+                  cursor: 'pointer'
+                }}
+              >
+                X Remove
+              </button>
+            </div>
+            <form onSubmit={handleEditSubmit}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <input 
+                  list="brands" 
+                  type="text" 
+                  name="brand" 
+                  value={editValues.brand || ''} 
+                  onChange={handleEditChange} 
+                  placeholder="Brand" 
+                />
+                <datalist id="brands">
+                  {popularBrands.map((b, index) => (
+                    <option key={index} value={b} />
+                  ))}
+                </datalist>
+                <input 
+                  type="text" 
+                  name="carType" 
+                  value={editValues.carType || ''} 
+                  onChange={handleEditChange} 
+                  placeholder="Type (e.g., SUV)" 
+                />
+                <input 
+                  type="text" 
+                  name="washType" 
+                  value={editValues.washType || ''} 
+                  onChange={handleEditChange} 
+                  placeholder="Type of Wash" 
+                  autoComplete="off"
+                  onKeyDown={(e) => {
+                    if(e.key === ' ') {
+                      e.stopPropagation();
+                    }
+                  }}
+                />
+                <input 
+                  type="text" 
+                  name="eta" 
+                  value={editValues.eta || ''} 
+                  onChange={handleEditChange} 
+                  placeholder="ETA (minutes)" 
+                />
+                <input 
+                  type="time" 
+                  name="scheduledTime" 
+                  value={editValues.scheduledTime || ''} 
+                  onChange={handleEditChange} 
+                  placeholder="Scheduled Time" 
+                />
+                <input 
+                  type="text" 
+                  name="notes" 
+                  value={editValues.notes || ''} 
+                  onChange={handleEditChange} 
+                  placeholder="Notes" 
+                />
+              </div>
+              <div style={{ marginTop: '10px' }}>
+                <button type="submit" style={{ padding: '5px 10px', marginRight: '10px' }}>
+                  Save
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => setEditingCar(null)} 
+                  style={{ padding: '5px 10px' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
