@@ -128,9 +128,11 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
 
 /*
   Updated CarCard for ClientDisplay:
-  - The title now displays the car's brand and type combined (e.g. "SKODA SUV").
-  - The subtitle area below the title displays the wash type (e.g. "GOLD WASH").
-  - Remaining information like the progress bar and notes are unchanged.
+  - Now displays three separate lines:
+    1. First line shows the brand (e.g., "SKODA")
+    2. Second line shows the carType (e.g., "SUV")
+    3. Third line shows the washType (e.g., "GOLD WASH")
+  - The progress bar and notes remain unchanged.
 */
 const CarCard = ({ car }) => {
   const cardStyle = {
@@ -147,20 +149,23 @@ const CarCard = ({ car }) => {
 
   return (
     <div style={cardStyle}>
-      <div style={{ fontWeight: 'bold', fontSize: '48px', marginBottom: '10px' }}>
-        {`${car.brand || ""} ${car.carType || ""}`}
+      <div style={{ fontWeight: 'bold', fontSize: '48px', marginBottom: '5px' }}>
+        {car.brand || ""}
+      </div>
+      <div style={{ fontSize: '36px', marginBottom: '5px' }}>
+        {car.carType || ""}
       </div>
       <div style={{ marginBottom: '10px', fontSize: '18px', fontStyle: 'italic' }}>
         {car.washType || ""}
       </div>
-      { car.countdown !== undefined &&
+      { car.countdown !== undefined && (
         <ProgressBar 
           countdown={car.countdown} 
           totalTime={car.totalTime}
           scheduledTime={car.scheduledTime}
           finishTime={car.finishTime}
         />
-      }
+      )}
       <div style={{ marginTop: '10px', fontStyle: 'italic', color: '#555' }}>
         Notes: {car.notes || "No notes"}
       </div>
@@ -277,9 +282,6 @@ const ClientDisplay = ({ cars }) => {
           >
             {finishedCars.map(car => (
               <CarCard key={car.id} car={car} />
-            ))}
-            {finishedCars.map(car => (
-              <CarCard key={`dup-${car.id}`} car={car} />
             ))}
           </div>
         </div>
