@@ -34,9 +34,7 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
   const [showForm, setShowForm] = useState(false);
   const [editingCar, setEditingCar] = useState(null);
 
-  // Changed state:
-  // • Removed license plate (and a "type" preset field for wash type).
-  // • Added "carType" for car type (like SUV or coupe) and "washType" for type of wash.
+  // Updated state: using brand, carType, washType (instead of "type") along with eta, notes, scheduledTime.
   const [formValues, setFormValues] = useState({
     brand: '',
     carType: '',
@@ -265,7 +263,7 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
               name="carType" 
               value={formValues.carType} 
               onChange={handleInputChange} 
-              placeholder="Type (e.g., SUV)" 
+              placeholder="Car Type (e.g., SUV)" 
               style={{ flex: '1 1 150px', padding: '5px' }}
             />
             <input 
@@ -273,7 +271,7 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
               name="washType" 
               value={formValues.washType} 
               onChange={handleInputChange} 
-              placeholder="Type of Wash" 
+              placeholder="Wash Type (e.g., GOLD WASH)" 
               autoComplete="off"
               onKeyDown={(e) => {
                 // Prevent any unwanted popup when pressing space.
@@ -523,14 +521,14 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
                   name="carType" 
                   value={editValues.carType || ''} 
                   onChange={handleEditChange} 
-                  placeholder="Type (e.g., SUV)" 
+                  placeholder="Car Type (e.g., SUV)" 
                 />
                 <input 
                   type="text" 
                   name="washType" 
                   value={editValues.washType || ''} 
                   onChange={handleEditChange} 
-                  placeholder="Type of Wash" 
+                  placeholder="Wash Type (e.g., GOLD WASH)" 
                   autoComplete="off"
                   onKeyDown={(e) => {
                     if(e.key === ' ') {
