@@ -35,6 +35,11 @@ app.use(cors());
 // GET all cars.
 app.get('/cars', async (req, res) => {
   await db.read();
+  // Ensure db.data and db.data.cars are defined
+  if (!db.data || !db.data.cars) {
+    db.data = { cars: [] };
+    await db.write();
+  }
   console.log("GET /cars request received. Current bookings:", db.data.cars);
   res.json(db.data.cars);
 });
@@ -42,6 +47,12 @@ app.get('/cars', async (req, res) => {
 // POST a new car booking.
 app.post('/cars', async (req, res) => {
   await db.read();
+  // Ensure db.data and db.data.cars exist before push
+  if (!db.data) {
+    db.data = { cars: [] };
+  } else if (!db.data.cars) {
+    db.data.cars = [];
+  }
   const newCar = req.body;
   console.log("POST /cars: Received new booking:", newCar);
   db.data.cars.push(newCar);
@@ -57,6 +68,11 @@ app.post('/cars', async (req, res) => {
 // PUT to update an existing car booking.
 app.put('/cars/:id', async (req, res) => {
   await db.read();
+  // Ensure db.data and db.data.cars exist
+  if (!db.data || !db.data.cars) {
+    db.data = { cars: [] };
+    await db.write();
+  }
   const { id } = req.params;
   const updates = req.body;
   const index = db.data.cars.findIndex(car => String(car.id) === id);
@@ -77,6 +93,11 @@ app.put('/cars/:id', async (req, res) => {
 // DELETE a car booking.
 app.delete('/cars/:id', async (req, res) => {
   await db.read();
+  // Ensure db.data and db.data.cars exist
+  if (!db.data || !db.data.cars) {
+    db.data = { cars: [] };
+    await db.write();
+  }
   const { id } = req.params;
   console.log(`DELETE /cars/${id}: Removing booking.`);
   db.data.cars = db.data.cars.filter(car => String(car.id) !== id);
