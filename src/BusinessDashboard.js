@@ -34,7 +34,7 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
   const [showForm, setShowForm] = useState(false);
   const [editingCar, setEditingCar] = useState(null);
 
-  // Updated state: using brand, carType, washType along with eta, notes, scheduledTime.
+  // Updated state: including brand, carType, and washType (all will be normalized to uppercase) plus eta, notes, scheduledTime.
   const [formValues, setFormValues] = useState({
     brand: '',
     carType: '',
@@ -67,7 +67,7 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
       alert("Please provide Car Brand, Car Type, Wash Type, ETA, and Scheduled Time.");
       return;
     }
-    // Convert to uppercase so that lowercase input is properly normalized.
+    // Convert to uppercase so lowercase input is normalized.
     brand = brand.toUpperCase();
     carType = carType.toUpperCase();
     washType = washType.toUpperCase();
@@ -167,12 +167,12 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
     bc.close();
   };
 
-  // Filter bookings for the selected day.
+  // Updated filter to include bookings whose scheduled OR finish date matches the selected date.
   const filteredCars = cars.filter(car => {
     const scheduled = new Date(car.scheduledTime);
-    return scheduled.getFullYear() === selectedDate.getFullYear() &&
-           scheduled.getMonth() === selectedDate.getMonth() &&
-           scheduled.getDate() === selectedDate.getDate();
+    const finish = new Date(car.finishTime);
+    const selectedDateStr = selectedDate.toDateString();
+    return scheduled.toDateString() === selectedDateStr || finish.toDateString() === selectedDateStr;
   });
 
   // Calculate timeline positions.
