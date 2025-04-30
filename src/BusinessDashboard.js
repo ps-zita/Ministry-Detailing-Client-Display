@@ -33,12 +33,11 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
 
   const [showForm, setShowForm] = useState(false);
   const [editingCar, setEditingCar] = useState(null);
+  // Removed color and year; preset type to a fixed value (e.g., "GOLD WASH")
   const [formValues, setFormValues] = useState({
     plate: '',
     brand: '',
-    type: '',
-    color: '',
-    year: '',
+    type: 'GOLD WASH',
     eta: '',
     notes: '',
     scheduledTime: getCurrentTimeString()
@@ -61,9 +60,10 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
 
   const handleFormSubmit = (e) => {
     e.preventDefault();
-    const { plate, brand, type, color, year, eta, notes, scheduledTime } = formValues;
-    if (!plate || !brand || !type || !color || !year || !eta || !scheduledTime) {
-      alert("Please provide plate, brand, type, color, year, ETA, and scheduled time.");
+    const { plate, brand, type, eta, notes, scheduledTime } = formValues;
+    // Validate only required fields (plate, brand, type, eta, and scheduledTime)
+    if (!plate || !brand || !type || !eta || !scheduledTime) {
+      alert("Please provide plate, brand, type, ETA, and scheduled time.");
       return;
     }
     const etaMinutes = parseInt(eta, 10);
@@ -78,13 +78,12 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
     scheduled.setHours(hours, minutes, 0, 0);
     const scheduledISO = scheduled.toISOString();
     const finishTime = new Date(scheduled.getTime() + etaMinutes * 60000);
+    // Create new car booking without color and year
     const newCar = {
       id: Date.now(),
       plate,
       brand,
       type,
-      color,
-      year,
       countdown,
       totalTime,
       notes: notes || '',
@@ -101,9 +100,7 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
     setFormValues({
       plate: '',
       brand: '',
-      type: '',
-      color: '',
-      year: '',
+      type: 'GOLD WASH',
       eta: '',
       notes: '',
       scheduledTime: getCurrentTimeString()
@@ -113,9 +110,9 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
 
   const handleEditSubmit = (e) => {
     e.preventDefault();
-    const { plate, brand, type, color, year, eta, notes, scheduledTime } = editValues;
-    if (!plate || !brand || !type || !color || !year || !eta || !scheduledTime) {
-      alert("Please provide plate, brand, type, color, year, ETA and scheduled time");
+    const { plate, brand, type, eta, notes, scheduledTime } = editValues;
+    if (!plate || !brand || !type || !eta || !scheduledTime) {
+      alert("Please provide plate, brand, type, ETA and scheduled time");
       return;
     }
     const etaMinutes = parseInt(eta, 10);
@@ -135,8 +132,6 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
       plate,
       brand,
       type,
-      color,
-      year,
       countdown,
       totalTime,
       notes: notes || '',
@@ -281,23 +276,7 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
               name="type" 
               value={formValues.type} 
               onChange={handleInputChange} 
-              placeholder="Type" 
-              style={{ flex: '1 1 150px', padding: '5px' }}
-            />
-            <input 
-              type="text" 
-              name="color" 
-              value={formValues.color} 
-              onChange={handleInputChange} 
-              placeholder="Color" 
-              style={{ flex: '1 1 150px', padding: '5px' }}
-            />
-            <input 
-              type="text" 
-              name="year" 
-              value={formValues.year} 
-              onChange={handleInputChange} 
-              placeholder="Year" 
+              placeholder="Type of Wash (e.g., GOLD WASH)" 
               style={{ flex: '1 1 150px', padding: '5px' }}
             />
             <input 
@@ -415,8 +394,6 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
                   plate: car.plate,
                   brand: car.brand,
                   type: car.type,
-                  color: car.color,
-                  year: car.year,
                   eta: Math.round(car.totalTime / 60).toString(),
                   notes: car.notes,
                   scheduledTime: `${hh}:${mm}`
@@ -447,9 +424,7 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
               <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2px' }}>
                 <button 
                   onClick={(e) => {
-                    // Instead of having the remove button on the timeline,
-                    // we remove the booking from within the edit popup.
-                    // So here we do nothing.
+                    // Remove button is available in edit popup.
                     e.stopPropagation();
                   }}
                   style={{ fontSize: '10px', padding: '2px 4px', marginRight: '2px', visibility: 'hidden' }}
@@ -506,7 +481,6 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
             onClick={e => e.stopPropagation()}
           >
             <h2>Edit Car Details</h2>
-            {/* Add Remove button here */}
             <div style={{ textAlign: 'right' }}>
               <button 
                 onClick={() => handleRemove(editingCar.id)}
@@ -550,21 +524,7 @@ const BusinessDashboard = ({ cars, queryAddCar, adjustTime, removeCar, updateCar
                   name="type" 
                   value={editValues.type || ''} 
                   onChange={handleEditChange} 
-                  placeholder="Type" 
-                />
-                <input 
-                  type="text" 
-                  name="color" 
-                  value={editValues.color || ''} 
-                  onChange={handleEditChange} 
-                  placeholder="Color" 
-                />
-                <input 
-                  type="text" 
-                  name="year" 
-                  value={editValues.year || ''} 
-                  onChange={handleEditChange} 
-                  placeholder="Year" 
+                  placeholder="Type of Wash (e.g., GOLD WASH)" 
                 />
                 <input 
                   type="text" 
