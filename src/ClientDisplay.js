@@ -6,7 +6,7 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
   if (scheduledTime && finishTime) {
     const scheduled = new Date(scheduledTime);
     const finish = new Date(finishTime);
-
+    
     if (now < scheduled) {
       return (
         <div style={{
@@ -128,9 +128,10 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
 
 /*
   Updated CarCard for ClientDisplay:
-  - First slot: Car Brand
-  - Second slot: Type
-  - Uses empty strings as fallbacks so old "undefined" values are not shown.
+  - First slot shows Car Brand (e.g., SKODA) in large bold text.
+  - Under it, the second slot shows the Type (e.g., SUV).
+  - If present, the Type of Wash appears on a new line below the type.
+  - Deprecated fields (like license plate) are removed.
 */
 const CarCard = ({ car }) => {
   const cardStyle = {
@@ -148,12 +149,17 @@ const CarCard = ({ car }) => {
 
   return (
     <div style={cardStyle}>
-      <div style={{ fontWeight: 'bold', fontSize: '48px', marginBottom: '10px', position: 'relative' }}>
+      <div style={{ fontWeight: 'bold', fontSize: '48px', marginBottom: '10px' }}>
         {car.brand || ""}
       </div>
-      <div style={{ marginBottom: '10px', position: 'relative' }}>
+      <div style={{ marginBottom: '10px' }}>
         {car.type || ""}
       </div>
+      { car.typeOfWash && (
+        <div style={{ marginBottom: '10px', fontSize: '18px' }}>
+          {car.typeOfWash}
+        </div>
+      )}
       { car.countdown !== undefined &&
         <ProgressBar 
           countdown={car.countdown} 
@@ -162,7 +168,7 @@ const CarCard = ({ car }) => {
           finishTime={car.finishTime}
         />
       }
-      <div style={{ marginTop: '10px', fontStyle: 'italic', color: '#555', position: 'relative' }}>
+      <div style={{ marginTop: '10px', fontStyle: 'italic', color: '#555' }}>
         Notes: {car.notes || "No notes"}
       </div>
     </div>
@@ -170,7 +176,7 @@ const CarCard = ({ car }) => {
 };
 
 const ClientDisplay = ({ cars }) => {
-  // Refresh every minute.
+  // Hardcoded refresh every minute.
   useEffect(() => {
     const interval = setInterval(() => {
       window.location.reload();
@@ -178,7 +184,7 @@ const ClientDisplay = ({ cars }) => {
     return () => clearInterval(interval);
   }, []);
 
-  // Broadcast refresh listener.
+  // BroadcastChannel listener to refresh the display.
   useEffect(() => {
     const bc = new BroadcastChannel('dashboard-updates');
     bc.onmessage = (event) => {
