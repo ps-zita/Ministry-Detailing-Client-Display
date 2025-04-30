@@ -1,16 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
-  const [now, setNow] = useState(new Date());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-  
+  // If scheduledTime and finishTime exist, use a timer based on current time
   if (scheduledTime && finishTime) {
+    const [now, setNow] = useState(new Date());
+    useEffect(() => {
+      const timer = setInterval(() => setNow(new Date()), 1000);
+      return () => clearInterval(timer);
+    }, []);
+    
     const scheduled = new Date(scheduledTime);
     const finish = new Date(finishTime);
 
+    // Before wash starts
     if (now < scheduled) {
       return (
         <div style={{
@@ -29,7 +31,7 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
         </div>
       );
     }
-
+    // After wash finished
     if (now >= finish) {
       return (
         <div style={{
@@ -55,16 +57,16 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
         </div>
       );
     }
-
+    
     const elapsed = now - scheduled;
     const totalDuration = finish - scheduled;
     let progressPercentage = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
     progressPercentage = Math.min(Math.max(progressPercentage, 0), 100);
-
+    
     const remainingMS = finish - now;
     const remainingMinutes = Math.floor(remainingMS / 60000);
     const remainingSeconds = ('0' + Math.floor((remainingMS % 60000) / 1000)).slice(-2);
-
+    
     return (
       <div style={{
         background: '#eee',
@@ -96,9 +98,29 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
     );
   }
 
-  let progressPercentage = totalTime > 0 ? ((totalTime - countdown) / totalTime) * 100 : 0;
-  progressPercentage = Math.min(Math.max(progressPercentage, 0), 100);
+  // Fallback branch when scheduledTime/finishTime are not provided.
+  // Use an internal state that ticks down every second.
+  const [remainingCount, setRemainingCount] = useState(countdown);
+  useEffect(() => {
+    setRemainingCount(countdown);
+    const timer = setInterval(() => {
+      setRemainingCount(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [countdown]);
 
+  let progressPercentage = totalTime > 0 ? ((totalTime - remainingCount) / totalTime) * 100 : 0;
+  progressPercentage = Math.min(Math.max(progressPercentage, 0), 100);
+  
+  const displayMinutes = Math.floor(remainingCount / 60);
+  const displaySeconds = ('0' + (remainingCount % 60)).slice(-2);
+  
   return (
     <div style={{
       background: '#eee',
@@ -124,7 +146,7 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
         fontSize: '22px',
         color: '#333'
       }}>
-        ETA: {Math.floor(countdown / 60)}m {('0' + (countdown % 60)).slice(-2)}s
+        ETA: {displayMinutes}m {displaySeconds}s
       </div>
     </div>
   );
@@ -225,8 +247,8 @@ const ClientDisplay = () => {
       height: '100vh',
       overflow: 'hidden',
       background: 'linear-gradient(90deg, #0f0c29, #302b63, #24243e)',
-      transform: 'scale(0.75)', // Zoom out to 75%
-      transformOrigin: 'top left' // Make the scaling start from the top-left corner
+      transform: 'scale(0.75)',
+      transformOrigin: 'top left'
     }}>
       <div style={{ flex: 4, padding: '20px', overflowY: 'auto' }}>
         <h2 style={{ fontSize: '28px', marginBottom: '20px', color: 'white' }}>Cars In Progress</h2>
