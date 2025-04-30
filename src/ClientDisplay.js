@@ -1,17 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
-  // Always create the hook states unconditionally.
+  // Always initialize hooks unconditionally.
   const [now, setNow] = useState(new Date());
   const [remainingCount, setRemainingCount] = useState(countdown);
 
   useEffect(() => {
-    // If scheduledTime & finishTime are provided, use the current time (now) updating every second.
     if (scheduledTime && finishTime) {
+      // Update "now" every second if scheduledTime and finishTime are provided.
       const timer = setInterval(() => setNow(new Date()), 1000);
       return () => clearInterval(timer);
     } else {
-      // Otherwise update the remaining count.
+      // Otherwise, update the remainingCount every second.
       setRemainingCount(countdown);
       const timer = setInterval(() => {
         setRemainingCount(prev => (prev > 0 ? prev - 1 : 0));
@@ -20,12 +20,12 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
     }
   }, [scheduledTime, finishTime, countdown]);
 
-  // If scheduledTime and finishTime exist, base the countdown on the current time.
+  // If scheduledTime and finishTime exist, calculate progress and ETA based on current time.
   if (scheduledTime && finishTime) {
     const scheduled = new Date(scheduledTime);
     const finish = new Date(finishTime);
 
-    // If current time is before the scheduled time.
+    // Before wash has started.
     if (now < scheduled) {
       return (
         <div style={{
@@ -45,7 +45,7 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
       );
     }
 
-    // If current time is past the finish time.
+    // After wash has finished.
     if (now >= finish) {
       return (
         <div style={{
@@ -71,17 +71,16 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
         </div>
       );
     }
-    
-    // Calculate progress based on the elapsed time.
+
     const elapsed = now - scheduled;
     const totalDuration = finish - scheduled;
     let progressPercentage = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
     progressPercentage = Math.min(Math.max(progressPercentage, 0), 100);
-    
+
     const remainingMS = finish - now;
     const remainingMinutes = Math.floor(remainingMS / 60000);
     const remainingSeconds = ('0' + Math.floor((remainingMS % 60000) / 1000)).slice(-2);
-    
+
     return (
       <div style={{
         background: '#eee',
@@ -113,13 +112,13 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
     );
   }
 
-  // Otherwise, use the fallback state-based countdown.
+  // Fallback branch when scheduledTime/finishTime are not provided.
   let progressPercentage = totalTime > 0 ? ((totalTime - remainingCount) / totalTime) * 100 : 0;
   progressPercentage = Math.min(Math.max(progressPercentage, 0), 100);
-  
+
   const displayMinutes = Math.floor(remainingCount / 60);
   const displaySeconds = ('0' + (remainingCount % 60)).slice(-2);
-  
+
   return (
     <div style={{
       background: '#eee',
@@ -250,7 +249,9 @@ const ClientDisplay = () => {
       transformOrigin: 'top left'
     }}>
       <div style={{ flex: 4, padding: '20px', overflowY: 'auto' }}>
-        <h2 style={{ fontSize: '28px', marginBottom: '20px', color: 'white' }}>Cars In Progress</h2>
+        <h2 style={{ fontSize: '28px', marginBottom: '20px', color: 'white' }}>
+          Cars In Progress
+        </h2>
         <div style={{ display: 'flex', flexWrap: 'wrap' }}>
           {inProgressCars.map(car => (
             <CarCard key={car.id} car={car} />
@@ -258,7 +259,9 @@ const ClientDisplay = () => {
         </div>
       </div>
       <div style={{ flex: 1, padding: '20px', borderLeft: '2px solid white', overflow: 'hidden' }}>
-        <h2 style={{ fontSize: '28px', marginBottom: '20px', color: 'white' }}>Finished Cars</h2>
+        <h2 style={{ fontSize: '28px', marginBottom: '20px', color: 'white' }}>
+          Finished Cars
+        </h2>
         <div style={{ height: '100%', overflow: 'hidden' }}>
           {finishedCars.map(car => (
             <CarCard key={car.id} car={car} />
