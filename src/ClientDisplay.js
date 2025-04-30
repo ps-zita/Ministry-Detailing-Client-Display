@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
-  // Update current time every second for a live countdown
   const [now, setNow] = useState(new Date());
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
@@ -11,7 +10,7 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
   if (scheduledTime && finishTime) {
     const scheduled = new Date(scheduledTime);
     const finish = new Date(finishTime);
-    
+
     if (now < scheduled) {
       return (
         <div style={{
@@ -30,7 +29,7 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
         </div>
       );
     }
-    
+
     if (now >= finish) {
       return (
         <div style={{
@@ -56,16 +55,16 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
         </div>
       );
     }
-    
+
     const elapsed = now - scheduled;
     const totalDuration = finish - scheduled;
     let progressPercentage = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
     progressPercentage = Math.min(Math.max(progressPercentage, 0), 100);
-    
+
     const remainingMS = finish - now;
     const remainingMinutes = Math.floor(remainingMS / 60000);
     const remainingSeconds = ('0' + Math.floor((remainingMS % 60000) / 1000)).slice(-2);
-    
+
     return (
       <div style={{
         background: '#eee',
@@ -96,10 +95,10 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
       </div>
     );
   }
-  
+
   let progressPercentage = totalTime > 0 ? ((totalTime - countdown) / totalTime) * 100 : 0;
   progressPercentage = Math.min(Math.max(progressPercentage, 0), 100);
-  
+
   return (
     <div style={{
       background: '#eee',
@@ -173,7 +172,6 @@ const CarCard = ({ car }) => {
 const ClientDisplay = () => {
   const [cars, setCars] = useState([]);
 
-  // Fetch cars from backend using host specified to allow external devices.
   const fetchCars = async () => {
     try {
       const host = window.location.hostname;
@@ -188,14 +186,12 @@ const ClientDisplay = () => {
     }
   };
 
-  // Fetch on mount and every minute.
   useEffect(() => {
     fetchCars();
     const interval = setInterval(fetchCars, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // Listen to broadcast channel for refresh.
   useEffect(() => {
     const bc = new BroadcastChannel('dashboard-updates');
     bc.onmessage = (event) => {
@@ -228,39 +224,11 @@ const ClientDisplay = () => {
       display: 'flex',
       height: '100vh',
       overflow: 'hidden',
-      background: 'linear-gradient(90deg, #0f0c29, #302b63, #24243e)'
+      background: 'linear-gradient(90deg, #0f0c29, #302b63, #24243e)',
+      transform: 'scale(0.75)', // Zoom out to 75%
+      transformOrigin: 'top left' // Make the scaling start from the top-left corner
     }}>
-      <style>{`
-        .client-display-container {
-          display: flex;
-        }
-        .client-display-left {
-          flex: 4;
-          padding: 20px;
-          overflow-y: auto;
-        }
-        .client-display-right {
-          flex: 1;
-          padding: 20px;
-          border-left: 2px solid white;
-          overflow: hidden;
-          position: relative;
-        }
-        @media (max-width: 768px) {
-          .client-display-container {
-            flex-direction: column;
-          }
-          .client-display-left, .client-display-right {
-            flex: 1;
-            padding: 10px;
-          }
-          .client-display-right {
-            border-left: none;
-            border-top: 2px solid white;
-          }
-        }
-      `}</style>
-      <div className="client-display-left">
+      <div style={{ flex: 4, padding: '20px', overflowY: 'auto' }}>
         <h2 style={{ fontSize: '28px', marginBottom: '20px', color: 'white' }}>Cars In Progress</h2>
         <div style={{ display: 'flex', flexWrap: 'wrap' }}>
           {inProgressCars.map(car => (
@@ -268,47 +236,13 @@ const ClientDisplay = () => {
           ))}
         </div>
       </div>
-      <div className="client-display-right">
+      <div style={{ flex: 1, padding: '20px', borderLeft: '2px solid white', overflow: 'hidden' }}>
         <h2 style={{ fontSize: '28px', marginBottom: '20px', color: 'white' }}>Finished Cars</h2>
         <div style={{ height: '100%', overflow: 'hidden' }}>
-          <FinishedCarsMarquee finishedCars={finishedCars} />
+          {finishedCars.map(car => (
+            <CarCard key={car.id} car={car} />
+          ))}
         </div>
-      </div>
-    </div>
-  );
-};
-
-const FinishedCarsMarquee = ({ finishedCars }) => {
-  const finishedOuterRef = useRef(null);
-  const finishedContentRef = useRef(null);
-  
-  useEffect(() => {
-    if (finishedCars.length >= 4 && finishedContentRef.current) {
-      const content = finishedContentRef.current;
-      const originalHeight = content.offsetHeight / 2;
-      const speed = 30; // pixels per second
-      const duration = originalHeight / speed;
-      content.style.animation = `verticalMarquee ${duration}s linear infinite`;
-    } else if (finishedContentRef.current) {
-      finishedContentRef.current.style.animation = 'none';
-    }
-  }, [finishedCars]);
-  
-  return (
-    <div ref={finishedOuterRef} style={{ height: '100%', overflow: 'hidden' }}>
-      <style>{`
-        @keyframes verticalMarquee {
-          from { transform: translateY(0); }
-          to { transform: translateY(-50%); }
-        }
-      `}</style>
-      <div 
-        ref={finishedContentRef} 
-        style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
-      >
-        {finishedCars.map(car => (
-          <CarCard key={car.id} car={car} />
-        ))}
       </div>
     </div>
   );
