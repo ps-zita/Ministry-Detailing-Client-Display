@@ -1,11 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import BookingCard from './BookingCard';
-
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://192.168.1.109:3001';
 
 const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
   const now = new Date();
-
+  
   if (scheduledTime && finishTime) {
     const scheduled = new Date(scheduledTime);
     const finish = new Date(finishTime);
@@ -28,7 +25,7 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
         </div>
       );
     }
-
+    
     if (now >= finish) {
       return (
         <div style={{
@@ -54,16 +51,16 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
         </div>
       );
     }
-
+    
     const elapsed = now - scheduled;
     const totalDuration = finish - scheduled;
     let progressPercentage = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
     progressPercentage = Math.min(Math.max(progressPercentage, 0), 100);
-
+    
     const remainingMS = finish - now;
     const remainingMinutes = Math.floor(remainingMS / 60000);
     const remainingSeconds = ('0' + Math.floor((remainingMS % 60000) / 1000)).slice(-2);
-
+    
     return (
       <div style={{
         background: '#eee',
@@ -94,10 +91,10 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
       </div>
     );
   }
-
+  
   let progressPercentage = totalTime > 0 ? ((totalTime - countdown) / totalTime) * 100 : 0;
   progressPercentage = Math.min(Math.max(progressPercentage, 0), 100);
-
+  
   return (
     <div style={{
       background: '#eee',
@@ -129,7 +126,7 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
   );
 };
 
-const BookingCardWrapper = ({ booking }) => {
+const BookingCard = ({ booking }) => {
   if (booking.booking_status === 'Cancelled') return null;
 
   // Adjusted to use top-level keys directly instead of nested objects.
@@ -175,27 +172,30 @@ const BookingCardWrapper = ({ booking }) => {
 };
 
 const ClientDisplay = () => {
+  // Added local state for bookings.
   const [bookings, setBookings] = useState([]);
   const finishedOuterRef = useRef(null);
   const finishedContentRef = useRef(null);
 
-  // Function to fetch bookings.
+  // Function to fetch bookings from the backend.
   const fetchBookings = () => {
-    fetch(`${API_BASE_URL}/bookings`)
-      .then(response => response.json())
-      .then(data => {
+    fetch('http://localhost:3001/bookings')
+      .then((response) => response.json())
+      .then((data) => {
         console.log('Fetched bookings:', data);
         setBookings(data);
       })
-      .catch(error => {
+      .catch((error) => {
         console.error('Error fetching bookings:', error);
       });
   };
 
-  // Poll for updates every 10 seconds.
+  // Poll for updated bookings every 10 seconds.
   useEffect(() => {
     fetchBookings(); // Initial fetch.
-    const interval = setInterval(fetchBookings, 10000);
+    const interval = setInterval(() => {
+      fetchBookings();
+    }, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -211,7 +211,7 @@ const ClientDisplay = () => {
   }, []);
 
   const now = new Date();
-
+  
   // Determine in-progress bookings based on times or countdown.
   const inProgressBookings = bookings.filter(booking => {
     if (booking.scheduledTime && booking.finishTime) {
@@ -220,8 +220,8 @@ const ClientDisplay = () => {
     }
     return booking.countdown > 0;
   });
-
-  // Determine finished bookings (only those not older than 1 hour past finishTime).
+  
+  // Determine finished bookings that are not older than 1 hour past finishTime.
   const finishedBookings = bookings.filter(booking => {
     if (booking.scheduledTime && booking.finishTime) {
       const finish = new Date(booking.finishTime);
@@ -277,7 +277,7 @@ const ClientDisplay = () => {
         <h2 style={headingStyle}>Bookings In Progress</h2>
         <div style={{ display: 'flex', flexWrap: 'wrap' }}>
           {inProgressBookings.map(booking => (
-            <BookingCardWrapper key={booking.id} booking={booking} />
+            <BookingCard key={booking.id} booking={booking} />
           ))}
         </div>
       </div>
@@ -300,7 +300,7 @@ const ClientDisplay = () => {
           >
             {finishedBookings.length ? (
               finishedBookings.map(booking => (
-                <BookingCardWrapper key={booking.id} booking={booking} />
+                <BookingCard key={booking.id} booking={booking} />
               ))
             ) : (
               <p style={{ color: 'white', fontSize: '24px' }}>
@@ -309,7 +309,7 @@ const ClientDisplay = () => {
             )}
             {finishedBookings.length >= 4 &&
               finishedBookings.map(booking => (
-                <BookingCardWrapper key={`dup-${booking.id}`} booking={booking} />
+                <BookingCard key={`dup-${booking.id}`} booking={booking} />
               ))
             }
           </div>
