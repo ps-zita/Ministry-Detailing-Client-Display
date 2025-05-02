@@ -1,0 +1,18 @@
+{
+  "bookings": [
+    {
+      "id": "1746149254789",
+      "customer_first_name": "ASS",
+      "customer_last_name": "W",
+      "booking_description": "blahblha",
+      "service_name": "GOLD WASH",
+      "service_id": 421560,
+      "booking_hash_id": "930885191",
+      "booking_status": "New",
+      "countdown": 3600,
+      "totalTime": 3600,
+      "scheduledTime": "2025-05-02T01:25:00.000Z",
+      "finishTime": "2025-05-02T02:25:00.000Z"
+    }
+  ]
+}
