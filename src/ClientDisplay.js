@@ -229,23 +229,26 @@ const ClientDisplay = () => {
     height: '100vh',
     overflow: 'hidden',
     background: 'linear-gradient(90deg, #0f0c29, #302b63, #24243e)',
-    position: 'relative' // Ensure logo can be positioned.
+    position: 'relative'
   };
 
+  // Logo should appear on top of the gradient, but under the cards.
   const logoStyle = {
     position: 'absolute',
     top: 0,
     left: 0,
-    height: '100vh', // Span the entire viewport height.
-    width: 'auto', // Maintain aspect ratio.
-    zIndex: -1, // Make it a background element.
-    opacity: 0.1 // Add opacity to make it subtle.
+    height: '100vh',
+    width: 'auto',
+    zIndex: 0, // below the cards
+    opacity: 0.1
   };
 
   const leftSectionStyle = {
     flex: 4,
     padding: '20px',
-    overflowY: 'auto'
+    overflowY: 'auto',
+    position: 'relative',
+    zIndex: 1 // above the logo
   };
 
   const rightSectionStyle = {
@@ -253,7 +256,8 @@ const ClientDisplay = () => {
     padding: '20px',
     borderLeft: '2px solid white',
     overflow: 'hidden',
-    position: 'relative'
+    position: 'relative',
+    zIndex: 1 // above the logo
   };
 
   const headingStyle = {
