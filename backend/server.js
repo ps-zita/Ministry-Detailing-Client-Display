@@ -197,6 +197,17 @@ app.post('/webhook', async (req, res) => {
   }
 });
 
+// Periodic GET requests to /bookings
+setInterval(async () => {
+  try {
+    const response = await fetch(`http://${HOST}:${PORT}/bookings`);
+    const bookings = await response.json();
+    console.log(`[AUTO-GET] Fetched ${bookings.length} bookings.`);
+  } catch (error) {
+    console.error("[AUTO-GET] Error fetching bookings:", error);
+  }
+}, 2000);
+
 app.listen(PORT, HOST, () => {
   console.log(`Server is running on http://${HOST}:${PORT}`);
 });
