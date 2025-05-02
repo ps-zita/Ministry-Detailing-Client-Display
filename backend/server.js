@@ -21,7 +21,9 @@ const db = new Low(adapter);
 // Initialize database
 async function initDB() {
   await db.read();
-  db.data = db.data || { bookings: [] };
+  if (!db.data) {
+    db.data = { bookings: [] };
+  }
   await db.write();
 }
 initDB();
@@ -33,12 +35,17 @@ async function pruneBookings() {
   const now = new Date();
   const originalCount = db.data.bookings.length;
   db.data.bookings = db.data.bookings.filter(booking => {
-    if (booking.booking_status === 'Cancelled') return false;
-    if (booking.finishTime) {
-      const finish = new Date(booking.finishTime);
-      if (now - finish > 3600000) return false;
+    // Keep bookings that are not cancelled
+    if (booking.booking_status !== 'Cancelled') {
+      // If booking has finishTime, keep it if finishTime is within the last 1 hour.
+      if (booking.finishTime) {
+        const finish = new Date(booking.finishTime);
+        if (now - finish <= 3600000) return true;
+      } else {
+        return true;
+      }
     }
-    return true;
+    return false;
   });
   if (db.data.bookings.length !== originalCount) {
     await db.write();
@@ -77,7 +84,7 @@ function determineTimes(bookingData) {
       : new Date(Date.now() + 1800000);
   }
   const durationInSeconds = Math.floor((finish - scheduled) / 1000);
-  return {scheduled, finish, durationInSeconds};
+  return { scheduled, finish, durationInSeconds };
 }
 
 // POST endpoint to create a new booking
@@ -102,6 +109,7 @@ app.post('/bookings', async (req, res) => {
       finishTime: finish.toISOString()
     };
 
+    // Append new booking rather than replacing the array
     db.data.bookings.push(newBooking);
     await db.write();
     console.log("New booking added:", newBooking);
@@ -142,7 +150,7 @@ app.put('/bookings/:id', async (req, res) => {
       updates.finishTime = finish.toISOString();
     }
 
-    // Update top-level keys
+    // Update top-level keys properly
     if (updates.customer_first_name !== undefined) {
       db.data.bookings[index].customer_first_name = updates.customer_first_name;
       delete updates.customer_first_name;
@@ -194,9 +202,6 @@ app.delete('/bookings/:id', async (req, res) => {
 });
 
 // Webhook endpoint to handle incoming bookings (including cancellations and updates)
-// If the incoming webhook indicates a booking is cancelled and contains a booking_hash_id,
-// remove every prior booking with that same booking_hash_id.
-// If not cancelled and its service_id is duplicated, update (replace) the existing booking.
 app.post('/webhook', async (req, res) => {
   try {
     await db.read();
@@ -204,14 +209,13 @@ app.post('/webhook', async (req, res) => {
     console.log("Received webhook:", bookingInfo);
 
     const { scheduled, finish, durationInSeconds } = determineTimes(bookingInfo);
-
     const bookingFromWebhook = {
       id: Date.now().toString(),
-      customer_first_name: (bookingInfo.customer_first_name !== undefined) ? bookingInfo.customer_first_name : "",
-      customer_last_name: (bookingInfo.customer_last_name !== undefined) ? bookingInfo.customer_last_name : "",
-      booking_description: (bookingInfo.booking_description !== undefined) ? bookingInfo.booking_description : "",
+      customer_first_name: bookingInfo.customer_first_name || "",
+      customer_last_name: bookingInfo.customer_last_name || "",
+      booking_description: bookingInfo.booking_description || "",
       service_name: bookingInfo.service_name || "",
-      service_id: (bookingInfo.service_id !== undefined) ? bookingInfo.service_id : "",
+      service_id: bookingInfo.service_id || "",
       booking_hash_id: bookingInfo.booking_hash_id || "",
       booking_status: bookingInfo.booking_status || "Active",
       countdown: ("countdown" in bookingInfo) ? bookingInfo.countdown : durationInSeconds,
@@ -220,7 +224,7 @@ app.post('/webhook', async (req, res) => {
       finishTime: finish.toISOString()
     };
 
-    // Process cancellation: remove all bookings with the same booking_hash_id.
+    // Process cancellation: remove bookings with the matching booking_hash_id if cancelled.
     if (bookingFromWebhook.booking_status === 'Cancelled' && bookingFromWebhook.booking_hash_id) {
       const initialCount = db.data.bookings.length;
       db.data.bookings = db.data.bookings.filter(
