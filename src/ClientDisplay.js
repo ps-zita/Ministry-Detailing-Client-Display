@@ -1,56 +1,125 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
   const now = new Date();
-
+  
   if (scheduledTime && finishTime) {
     const scheduled = new Date(scheduledTime);
     const finish = new Date(finishTime);
 
     if (now < scheduled) {
       return (
-        <div style={{ background: '#eee', borderRadius: '4px', width: '100%', height: '30px', marginTop: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', fontSize: '16px' }}>
+        <div style={{
+          background: '#eee',
+          borderRadius: '4px',
+          width: '100%',
+          height: '30px',
+          marginTop: '10px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#888',
+          fontSize: '16px'
+        }}>
           Booked for {scheduled.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </div>
       );
     }
-
+    
     if (now >= finish) {
       return (
-        <div style={{ background: '#ccc', borderRadius: '4px', width: '100%', height: '30px', marginTop: '10px', position: 'relative' }}>
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', textAlign: 'center', lineHeight: '30px', fontSize: '22px', color: '#333' }}>
+        <div style={{
+          background: '#ccc',
+          borderRadius: '4px',
+          width: '100%',
+          height: '30px',
+          marginTop: '10px',
+          position: 'relative'
+        }}>
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            textAlign: 'center',
+            lineHeight: '30px',
+            fontSize: '22px',
+            color: '#333'
+          }}>
             Finished
           </div>
         </div>
       );
     }
-
+    
     const elapsed = now - scheduled;
     const totalDuration = finish - scheduled;
     let progressPercentage = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
     progressPercentage = Math.min(Math.max(progressPercentage, 0), 100);
-
+    
     const remainingMS = finish - now;
     const remainingMinutes = Math.floor(remainingMS / 60000);
     const remainingSeconds = ('0' + Math.floor((remainingMS % 60000) / 1000)).slice(-2);
-
+    
     return (
-      <div style={{ background: '#eee', borderRadius: '4px', width: '100%', height: '30px', marginTop: '10px', position: 'relative' }}>
-        <div style={{ height: '100%', width: `${progressPercentage}%`, background: 'green', borderRadius: '4px' }} />
-        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', textAlign: 'center', lineHeight: '30px', fontSize: '22px', color: '#333' }}>
+      <div style={{
+        background: '#eee',
+        borderRadius: '4px',
+        width: '100%',
+        height: '30px',
+        marginTop: '10px',
+        position: 'relative'
+      }}>
+        <div style={{
+          height: '100%',
+          width: `${progressPercentage}%`,
+          background: 'green',
+          borderRadius: '4px'
+        }} />
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          textAlign: 'center',
+          lineHeight: '30px',
+          fontSize: '22px',
+          color: '#333'
+        }}>
           ETA: {remainingMinutes}m {remainingSeconds}s
         </div>
       </div>
     );
   }
-
+  
   let progressPercentage = totalTime > 0 ? ((totalTime - countdown) / totalTime) * 100 : 0;
   progressPercentage = Math.min(Math.max(progressPercentage, 0), 100);
-
+  
   return (
-    <div style={{ background: '#eee', borderRadius: '4px', width: '100%', height: '30px', marginTop: '10px', position: 'relative' }}>
-      <div style={{ height: '100%', width: `${progressPercentage}%`, background: 'green', borderRadius: '4px' }} />
-      <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', textAlign: 'center', lineHeight: '30px', fontSize: '22px', color: '#333' }}>
+    <div style={{
+      background: '#eee',
+      borderRadius: '4px',
+      width: '100%',
+      height: '30px',
+      marginTop: '10px',
+      position: 'relative'
+    }}>
+      <div style={{
+        height: '100%',
+        width: `${progressPercentage}%`,
+        background: 'green',
+        borderRadius: '4px'
+      }} />
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        textAlign: 'center',
+        lineHeight: '30px',
+        fontSize: '22px',
+        color: '#333'
+      }}>
         ETA: {Math.floor(countdown / 60)}m {('0' + (countdown % 60)).slice(-2)}s
       </div>
     </div>
@@ -60,6 +129,7 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
 const BookingCard = ({ booking }) => {
   if (booking.booking_status === 'Cancelled') return null;
 
+  // Adjusted to use top-level keys directly instead of nested objects.
   const firstName = booking.customer_first_name && booking.customer_first_name.trim() ? booking.customer_first_name : "NIL";
   const lastInitial = booking.customer_last_name && booking.customer_last_name.trim() ? booking.customer_last_name.charAt(0) + '.' : "NIL";
   const serviceName = booking.service_name && booking.service_name.trim() ? booking.service_name : "NIL";
@@ -75,7 +145,7 @@ const BookingCard = ({ booking }) => {
     position: 'relative',
     boxShadow: 'inset 0 0 20px rgba(0, 0, 0, 0.9)',
     overflow: 'hidden',
-    border: '1px solid white',
+    border: '1px solid white'
   };
 
   return (
@@ -89,47 +159,60 @@ const BookingCard = ({ booking }) => {
       <div style={{ marginBottom: '10px', position: 'relative' }}>
         {bookingDescription}
       </div>
-      {booking.countdown !== undefined && (
-        <ProgressBar
-          countdown={booking.countdown}
-          totalTime={booking.totalTime}
-          scheduledTime={booking.scheduledTime}
-          finishTime={booking.finishTime}
+      { booking.countdown !== undefined &&
+        <ProgressBar 
+          countdown={booking.countdown} 
+          totalTime={booking.totalTime} 
+          scheduledTime={booking.scheduledTime} 
+          finishTime={booking.finishTime} 
         />
-      )}
+      }
     </div>
   );
 };
 
 const ClientDisplay = () => {
+  // Added local state for bookings.
   const [bookings, setBookings] = useState([]);
-  const intervalRef = useRef(null);
+  const finishedOuterRef = useRef(null);
+  const finishedContentRef = useRef(null);
 
+  // Function to fetch bookings from the backend.
+  const fetchBookings = () => {
+    fetch('http://localhost:3001/bookings')
+      .then((response) => response.json())
+      .then((data) => {
+        console.log('Fetched bookings:', data);
+        setBookings(data);
+      })
+      .catch((error) => {
+        console.error('Error fetching bookings:', error);
+      });
+  };
+
+  // Poll for updated bookings every 10 seconds.
   useEffect(() => {
-    const fetchBookings = async () => {
-      try {
-        const response = await fetch('http://192.168.1.109:3001/bookings'); // Updated API endpoint
-        if (response.ok) {
-          const data = await response.json();
-          setBookings(data);
-        } else {
-          console.error("Failed to fetch bookings:", response.statusText);
-        }
-      } catch (error) {
-        console.error("Error fetching bookings:", error);
+    fetchBookings(); // Initial fetch.
+    const interval = setInterval(() => {
+      fetchBookings();
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Setup BroadcastChannel for refresh events.
+  useEffect(() => {
+    const bc = new BroadcastChannel('dashboard-updates');
+    bc.onmessage = (event) => {
+      if (event.data && event.data.type === 'refresh') {
+        fetchBookings();
       }
     };
-
-    // Fetch bookings immediately and then every 2 seconds
-    fetchBookings();
-    intervalRef.current = setInterval(fetchBookings, 2000);
-
-    // Cleanup interval on component unmount
-    return () => clearInterval(intervalRef.current);
+    return () => bc.close();
   }, []);
 
   const now = new Date();
-
+  
+  // Determine in-progress bookings based on times or countdown.
   const inProgressBookings = bookings.filter(booking => {
     if (booking.scheduledTime && booking.finishTime) {
       const finish = new Date(booking.finishTime);
@@ -137,7 +220,8 @@ const ClientDisplay = () => {
     }
     return booking.countdown > 0;
   });
-
+  
+  // Determine finished bookings that are not older than 1 hour past finishTime.
   const finishedBookings = bookings.filter(booking => {
     if (booking.scheduledTime && booking.finishTime) {
       const finish = new Date(booking.finishTime);
@@ -151,13 +235,13 @@ const ClientDisplay = () => {
     display: 'flex',
     height: '100vh',
     overflow: 'hidden',
-    background: 'linear-gradient(90deg, #0f0c29, #302b63, #24243e)',
+    background: 'linear-gradient(90deg, #0f0c29, #302b63, #24243e)'
   };
 
   const leftSectionStyle = {
     flex: 4,
     padding: '20px',
-    overflowY: 'auto',
+    overflowY: 'auto'
   };
 
   const rightSectionStyle = {
@@ -165,18 +249,16 @@ const ClientDisplay = () => {
     padding: '20px',
     borderLeft: '2px solid white',
     overflow: 'hidden',
-    position: 'relative',
+    position: 'relative'
   };
 
   const headingStyle = {
     fontSize: '28px',
     marginBottom: '20px',
-    color: 'white',
+    color: 'white'
   };
 
-  const finishedOuterRef = useRef(null);
-  const finishedContentRef = useRef(null);
-
+  // Set up vertical marquee animation for finished bookings if applicable.
   useEffect(() => {
     if (finishedBookings.length >= 4 && finishedContentRef.current) {
       const content = finishedContentRef.current;
@@ -213,7 +295,7 @@ const ClientDisplay = () => {
             style={{
               display: 'flex',
               flexDirection: 'column',
-              gap: '20px',
+              gap: '20px'
             }}
           >
             {finishedBookings.length ? (
@@ -228,7 +310,8 @@ const ClientDisplay = () => {
             {finishedBookings.length >= 4 &&
               finishedBookings.map(booking => (
                 <BookingCard key={`dup-${booking.id}`} booking={booking} />
-              ))}
+              ))
+            }
           </div>
         </div>
       </div>
