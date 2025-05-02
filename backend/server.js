@@ -7,11 +7,6 @@ const fs = require('fs');
 const app = express();
 const PORT = 3001;
 
-// Enable CORS so that requests from 192.168.1.109:3000 are accepted.
-app.use(cors({
-  origin: 'http://192.168.1.109:3000'
-}));
-
 // Define the JSON file path
 const file = path.join(__dirname, 'booking.json');
 
@@ -52,6 +47,7 @@ async function pruneBookings() {
 
 // Middleware
 app.use(express.json());
+app.use(cors());
 
 // GET endpoint to fetch all bookings (pruning cancelled and expired bookings first)
 app.get('/bookings', async (req, res) => {
@@ -259,6 +255,6 @@ app.post('/webhook', async (req, res) => {
   }
 });
 
-app.listen(PORT, '192.168.1.109', () => {
-  console.log(`Server is running on http://192.168.1.109:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server is running on http://0.0.0.0:${PORT}`);
 });
