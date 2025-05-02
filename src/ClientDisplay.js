@@ -108,7 +108,7 @@ const ClientDisplay = () => {
   useEffect(() => {
     const fetchBookings = async () => {
       try {
-        const response = await fetch('http://localhost:3001/bookings');
+        const response = await fetch('http://192.168.1.109:3001/bookings'); // Updated API endpoint
         if (response.ok) {
           const data = await response.json();
           setBookings(data);
