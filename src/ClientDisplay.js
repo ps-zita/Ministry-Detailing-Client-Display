@@ -129,7 +129,6 @@ const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
 const BookingCard = ({ booking }) => {
   if (booking.booking_status === 'Cancelled') return null;
 
-  // Adjusted to use top-level keys directly instead of nested objects.
   const firstName = booking.customer_first_name && booking.customer_first_name.trim() ? booking.customer_first_name : "NIL";
   const lastInitial = booking.customer_last_name && booking.customer_last_name.trim() ? booking.customer_last_name.charAt(0) + '.' : "NIL";
   const serviceName = booking.service_name && booking.service_name.trim() ? booking.service_name : "NIL";
@@ -172,12 +171,10 @@ const BookingCard = ({ booking }) => {
 };
 
 const ClientDisplay = () => {
-  // Added local state for bookings.
   const [bookings, setBookings] = useState([]);
   const finishedOuterRef = useRef(null);
   const finishedContentRef = useRef(null);
 
-  // Function to fetch bookings from the backend.
   const fetchBookings = () => {
     fetch('http://localhost:3001/bookings')
       .then((response) => response.json())
@@ -190,16 +187,14 @@ const ClientDisplay = () => {
       });
   };
 
-  // Poll for updated bookings every 10 seconds.
   useEffect(() => {
-    fetchBookings(); // Initial fetch.
+    fetchBookings();
     const interval = setInterval(() => {
       fetchBookings();
     }, 10000);
     return () => clearInterval(interval);
   }, []);
 
-  // Setup BroadcastChannel for refresh events.
   useEffect(() => {
     const bc = new BroadcastChannel('dashboard-updates');
     bc.onmessage = (event) => {
@@ -212,7 +207,6 @@ const ClientDisplay = () => {
 
   const now = new Date();
   
-  // Determine in-progress bookings based on times or countdown.
   const inProgressBookings = bookings.filter(booking => {
     if (booking.scheduledTime && booking.finishTime) {
       const finish = new Date(booking.finishTime);
@@ -221,7 +215,6 @@ const ClientDisplay = () => {
     return booking.countdown > 0;
   });
   
-  // Determine finished bookings that are not older than 1 hour past finishTime.
   const finishedBookings = bookings.filter(booking => {
     if (booking.scheduledTime && booking.finishTime) {
       const finish = new Date(booking.finishTime);
@@ -235,7 +228,18 @@ const ClientDisplay = () => {
     display: 'flex',
     height: '100vh',
     overflow: 'hidden',
-    background: 'linear-gradient(90deg, #0f0c29, #302b63, #24243e)'
+    background: 'linear-gradient(90deg, #0f0c29, #302b63, #24243e)',
+    position: 'relative' // Ensure logo can be positioned.
+  };
+
+  const logoStyle = {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    height: '100vh', // Span the entire viewport height.
+    width: 'auto', // Maintain aspect ratio.
+    zIndex: -1, // Make it a background element.
+    opacity: 0.1 // Add opacity to make it subtle.
   };
 
   const leftSectionStyle = {
@@ -258,7 +262,6 @@ const ClientDisplay = () => {
     color: 'white'
   };
 
-  // Set up vertical marquee animation for finished bookings if applicable.
   useEffect(() => {
     if (finishedBookings.length >= 4 && finishedContentRef.current) {
       const content = finishedContentRef.current;
@@ -273,6 +276,7 @@ const ClientDisplay = () => {
 
   return (
     <div style={containerStyle}>
+      <img src="/logo.png" alt="Logo" style={logoStyle} />
       <div style={leftSectionStyle}>
         <h2 style={headingStyle}>Bookings In Progress</h2>
         <div style={{ display: 'flex', flexWrap: 'wrap' }}>
