@@ -144,7 +144,8 @@ const BookingCard = ({ booking }) => {
     position: 'relative',
     boxShadow: 'inset 0 0 20px rgba(0, 0, 0, 0.9)',
     overflow: 'hidden',
-    border: '1px solid white'
+    border: '1px solid white',
+    zIndex: 1000 // Ensure cards are on top of the logo
   };
 
   return (
@@ -232,14 +233,14 @@ const ClientDisplay = () => {
     position: 'relative'
   };
 
-  // Logo should appear on top of the gradient, but under the cards.
+  // Logo should appear above the gradient but below the cards
   const logoStyle = {
     position: 'absolute',
     top: 0,
     left: 0,
     height: '100vh',
     width: 'auto',
-    zIndex: 0, // below the cards
+    zIndex: 900, // Ensure logo is below the cards but above the gradient
     opacity: 0.1
   };
 
@@ -247,8 +248,7 @@ const ClientDisplay = () => {
     flex: 4,
     padding: '20px',
     overflowY: 'auto',
-    position: 'relative',
-    zIndex: 1 // above the logo
+    position: 'relative'
   };
 
   const rightSectionStyle = {
@@ -256,8 +256,7 @@ const ClientDisplay = () => {
     padding: '20px',
     borderLeft: '2px solid white',
     overflow: 'hidden',
-    position: 'relative',
-    zIndex: 1 // above the logo
+    position: 'relative'
   };
 
   const headingStyle = {
