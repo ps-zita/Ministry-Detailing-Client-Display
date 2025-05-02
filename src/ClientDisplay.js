@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import BookingCard from './BookingCard';
 
 const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
   const now = new Date();
@@ -172,30 +173,28 @@ const BookingCard = ({ booking }) => {
 };
 
 const ClientDisplay = () => {
-  // Added local state for bookings.
+  // Local state for bookings.
   const [bookings, setBookings] = useState([]);
   const finishedOuterRef = useRef(null);
   const finishedContentRef = useRef(null);
 
-  // Function to fetch bookings from the backend.
+  // Function to fetch bookings.
   const fetchBookings = () => {
-    fetch('http://localhost:3001/bookings')
-      .then((response) => response.json())
-      .then((data) => {
+    fetch('http://192.168.1.109:3001/bookings')
+      .then(response => response.json())
+      .then(data => {
         console.log('Fetched bookings:', data);
         setBookings(data);
       })
-      .catch((error) => {
+      .catch(error => {
         console.error('Error fetching bookings:', error);
       });
   };
 
-  // Poll for updated bookings every 10 seconds.
+  // Poll for updates every 10 seconds.
   useEffect(() => {
     fetchBookings(); // Initial fetch.
-    const interval = setInterval(() => {
-      fetchBookings();
-    }, 10000);
+    const interval = setInterval(fetchBookings, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -221,7 +220,7 @@ const ClientDisplay = () => {
     return booking.countdown > 0;
   });
   
-  // Determine finished bookings that are not older than 1 hour past finishTime.
+  // Determine finished bookings (only those not older than 1 hour past finishTime).
   const finishedBookings = bookings.filter(booking => {
     if (booking.scheduledTime && booking.finishTime) {
       const finish = new Date(booking.finishTime);
