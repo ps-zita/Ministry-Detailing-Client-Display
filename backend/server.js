@@ -8,16 +8,15 @@ const app = express();
 const PORT = 3001; // Backend port
 const HOST = '192.168.1.109'; // IP address for backend
 
-// Define the path to booking.json in a way that works from any working directory.
-const filePath = path.join(__dirname, 'booking.json');
+// Define the JSON file path
+const file = path.join(__dirname, 'booking.json');
 
-// Ensure the booking.json exists.
-if (!fs.existsSync(filePath)) {
-  console.log("booking.json not found. Creating new file.");
-  fs.writeFileSync(filePath, JSON.stringify({ bookings: [] }, null, 2));
+// Ensure the JSON file exists; if not, create it with default structure.
+if (!fs.existsSync(file)) {
+  fs.writeFileSync(file, JSON.stringify({ bookings: [] }, null, 2));
 }
 
-const adapter = new JSONFile(filePath);
+const adapter = new JSONFile(file);
 const db = new Low(adapter);
 
 // Initialize database
@@ -25,33 +24,38 @@ async function initDB() {
   await db.read();
   db.data = db.data || { bookings: [] };
   await db.write();
-  console.log("Database initialized.");
 }
 initDB();
+
+// Utility function to prune cancelled and expired bookings
+// A booking is considered expired if finishTime is more than 1 hour ago.
+async function pruneBookings() {
+  await db.read();
+  const now = new Date();
+  const originalCount = db.data.bookings.length;
+  db.data.bookings = db.data.bookings.filter(booking => {
+    if (booking.booking_status === 'Cancelled') return false;
+    if (booking.finishTime) {
+      const finish = new Date(booking.finishTime);
+      if (now - finish > 3600000) return false;
+    }
+    return true;
+  });
+  if (db.data.bookings.length !== originalCount) {
+    await db.write();
+  }
+}
 
 // Middleware
 app.use(express.json());
 app.use(cors());
 
-// Helper function to determine scheduled and finish times with duration
-function determineTimes(data) {
-  let scheduled, finish;
-  if (data.booking_date_start_formatted && data.booking_date_end) {
-    scheduled = new Date(data.booking_date_start_formatted);
-    finish = new Date(data.booking_date_end);
-  } else {
-    scheduled = data.scheduledTime ? new Date(data.scheduledTime) : new Date(Date.now() + 5000);
-    finish = data.finishTime ? new Date(data.finishTime) : new Date(Date.now() + 1800000);
-  }
-  const durationInSeconds = Math.floor((finish - scheduled) / 1000);
-  return { scheduled, finish, durationInSeconds };
-}
-
-// GET /bookings endpoint
+// GET endpoint to fetch all bookings (pruning cancelled and expired bookings first)
 app.get('/bookings', async (req, res) => {
   try {
+    await pruneBookings();
     await db.read();
-    console.log(`[GET] /bookings: Returning ${db.data.bookings.length} bookings.`);
+    console.log("GET /bookings called");
     res.json(db.data.bookings);
   } catch (error) {
     console.error("Error in GET /bookings:", error);
@@ -59,31 +63,49 @@ app.get('/bookings', async (req, res) => {
   }
 });
 
-// POST /bookings endpoint to create new booking
+// Helper function to determine scheduled and finish times and calculate duration
+function determineTimes(bookingData) {
+  let scheduled, finish;
+  if ("booking_date_start_formatted" in bookingData && "booking_date_end" in bookingData) {
+    scheduled = new Date(bookingData.booking_date_start_formatted);
+    finish = new Date(bookingData.booking_date_end);
+  } else {
+    scheduled = ("scheduledTime" in bookingData)
+      ? new Date(bookingData.scheduledTime)
+      : new Date(Date.now() + 5000);
+    finish = ("finishTime" in bookingData)
+      ? new Date(bookingData.finishTime)
+      : new Date(Date.now() + 1800000);
+  }
+  const durationInSeconds = Math.floor((finish - scheduled) / 1000);
+  return {scheduled, finish, durationInSeconds};
+}
+
+// POST endpoint to create a new booking
 app.post('/bookings', async (req, res) => {
   try {
     await db.read();
-    const data = req.body;
-    const { scheduled, finish, durationInSeconds } = determineTimes(data);
+    const bookingData = req.body;
+    const { scheduled, finish, durationInSeconds } = determineTimes(bookingData);
 
     const newBooking = {
       id: Date.now().toString(),
-      customer_first_name: data.customer_first_name || "",
-      customer_last_name: data.customer_last_name || "",
-      booking_description: data.booking_description || "",
-      service_name: data.service_name || "",
-      service_id: data.service_id !== undefined ? data.service_id : "",
-      booking_hash_id: data.booking_hash_id || "",
-      booking_status: data.booking_status || "Active",
-      countdown: "countdown" in data ? data.countdown : durationInSeconds,
-      totalTime: "totalTime" in data ? data.totalTime : durationInSeconds,
+      customer_first_name: bookingData.customer_first_name || "",
+      customer_last_name: bookingData.customer_last_name || "",
+      booking_description: bookingData.booking_description || "",
+      service_name: bookingData.service_name || "",
+      service_id: (bookingData.service_id !== undefined) ? bookingData.service_id : "",
+      booking_hash_id: bookingData.booking_hash_id || "",
+      booking_status: bookingData.booking_status || "Active",
+      countdown: ("countdown" in bookingData) ? bookingData.countdown : durationInSeconds,
+      totalTime: ("totalTime" in bookingData) ? bookingData.totalTime : durationInSeconds,
       scheduledTime: scheduled.toISOString(),
       finishTime: finish.toISOString()
     };
 
     db.data.bookings.push(newBooking);
     await db.write();
-    console.log("[POST] New booking added:", newBooking);
+    console.log("New booking added:", newBooking);
     res.json(newBooking);
   } catch (error) {
     console.error("Error in POST /bookings:", error);
@@ -91,108 +113,114 @@ app.post('/bookings', async (req, res) => {
   }
 });
 
-// PUT /bookings/:id endpoint to update booking
+// PUT endpoint to update a booking by id
 app.put('/bookings/:id', async (req, res) => {
   try {
     await db.read();
     const { id } = req.params;
     const updates = req.body;
-    const index = db.data.bookings.findIndex((b) => String(b.id) === id);
+    const index = db.data.bookings.findIndex(b => String(b.id) === id);
 
     if (index === -1) {
-      console.warn(`PUT /bookings/${id}: Booking not found`);
       return res.status(404).json({ error: "Booking not found" });
     }
 
-    // Merge updates into existing booking
+    // Process times if provided
+    if (updates.booking_date_start_formatted || updates.booking_date_end || updates.scheduledTime || updates.finishTime) {
+      const currentBooking = db.data.bookings[index];
+      let scheduled, finish;
+      if ("booking_date_start_formatted" in updates && "booking_date_end" in updates) {
+        scheduled = new Date(updates.booking_date_start_formatted);
+        finish = new Date(updates.booking_date_end);
+      } else {
+        scheduled = updates.scheduledTime ? new Date(updates.scheduledTime) : new Date(currentBooking.scheduledTime);
+        finish = updates.finishTime ? new Date(updates.finishTime) : new Date(currentBooking.finishTime);
+      }
+      const durationInSeconds = Math.floor((finish - scheduled) / 1000);
+      updates.countdown = ("countdown" in updates) ? updates.countdown : durationInSeconds;
+      updates.totalTime = ("totalTime" in updates) ? updates.totalTime : durationInSeconds;
+      updates.scheduledTime = scheduled.toISOString();
+      updates.finishTime = finish.toISOString();
+    }
+
     db.data.bookings[index] = { ...db.data.bookings[index], ...updates };
     await db.write();
-    console.log(`[PUT] Booking ${id} updated.`);
+    console.log(`Booking ${id} updated:`, db.data.bookings[index]);
     res.json(db.data.bookings[index]);
   } catch (error) {
-    console.error("Error in PUT /bookings/:id:", error);
+    console.error("Error in PUT /bookings/:id", error);
     res.status(500).json({ error: "Unable to update booking" });
   }
 });
 
-// DELETE /bookings/:id endpoint to remove booking
+// DELETE endpoint to remove a booking by id
 app.delete('/bookings/:id', async (req, res) => {
   try {
     await db.read();
     const { id } = req.params;
-    const originalLength = db.data.bookings.length;
-    db.data.bookings = db.data.bookings.filter((b) => String(b.id) !== id);
-    if (db.data.bookings.length < originalLength) {
-      await db.write();
-      console.log(`[DELETE] Booking ${id} deleted.`);
-      res.sendStatus(200);
-    } else {
-      console.warn(`[DELETE] Booking ${id} not found.`);
-      res.status(404).json({ error: "Booking not found" });
-    }
+    db.data.bookings = db.data.bookings.filter(b => String(b.id) !== id);
+    await db.write();
+    console.log(`Booking ${id} deleted`);
+    res.sendStatus(200);
   } catch (error) {
-    console.error("Error in DELETE /bookings/:id:", error);
+    console.error("Error in DELETE /bookings/:id", error);
     res.status(500).json({ error: "Unable to delete booking" });
   }
 });
 
-// Webhook endpoint to handle incoming bookings (cancellations or updates)
+// Webhook endpoint to handle incoming bookings (including cancellations and updates)
 app.post('/webhook', async (req, res) => {
   try {
     await db.read();
-    const data = req.body;
-    console.log("[WEBHOOK] Received data:", data);
+    const bookingInfo = req.body;
+    console.log("Received webhook:", bookingInfo);
 
-    const { scheduled, finish, durationInSeconds } = determineTimes(data);
+    const { scheduled, finish, durationInSeconds } = determineTimes(bookingInfo);
 
     const bookingFromWebhook = {
       id: Date.now().toString(),
-      customer_first_name: data.customer_first_name !== undefined ? data.customer_first_name : "",
-      customer_last_name: data.customer_last_name !== undefined ? data.customer_last_name : "",
-      booking_description: data.booking_description !== undefined ? data.booking_description : "",
-      service_name: data.service_name || "",
-      service_id: data.service_id !== undefined ? data.service_id : "",
-      booking_hash_id: data.booking_hash_id || "",
-      booking_status: data.booking_status || "Active",
-      countdown: "countdown" in data ? data.countdown : durationInSeconds,
-      totalTime: "totalTime" in data ? data.totalTime : durationInSeconds,
+      customer_first_name: (bookingInfo.customer_first_name !== undefined) ? bookingInfo.customer_first_name : "",
+      customer_last_name: (bookingInfo.customer_last_name !== undefined) ? bookingInfo.customer_last_name : "",
+      booking_description: (bookingInfo.booking_description !== undefined) ? bookingInfo.booking_description : "",
+      service_name: bookingInfo.service_name || "",
+      service_id: (bookingInfo.service_id !== undefined) ? bookingInfo.service_id : "",
+      booking_hash_id: bookingInfo.booking_hash_id || "",
+      booking_status: bookingInfo.booking_status || "Active",
+      countdown: ("countdown" in bookingInfo) ? bookingInfo.countdown : durationInSeconds,
+      totalTime: ("totalTime" in bookingInfo) ? bookingInfo.totalTime : durationInSeconds,
       scheduledTime: scheduled.toISOString(),
       finishTime: finish.toISOString()
     };
 
-    // If a cancellation webhook, remove all bookings with matching booking_hash_id.
+    // Process cancellation: remove all bookings with the same booking_hash_id.
     if (bookingFromWebhook.booking_status === 'Cancelled' && bookingFromWebhook.booking_hash_id) {
-      const originalLength = db.data.bookings.length;
+      const initialCount = db.data.bookings.length;
       db.data.bookings = db.data.bookings.filter(
-        (b) => b.booking_hash_id !== bookingFromWebhook.booking_hash_id
+        b => b.booking_hash_id !== bookingFromWebhook.booking_hash_id
       );
-      if (db.data.bookings.length < originalLength) {
+      if (db.data.bookings.length < initialCount) {
         await db.write();
-        console.log(`[WEBHOOK] Cancelled bookings with booking_hash_id ${bookingFromWebhook.booking_hash_id} removed.`);
+        console.log(`Removed booking(s) with booking_hash_id ${bookingFromWebhook.booking_hash_id} due to cancellation.`);
         return res.json({ message: "Booking(s) removed due to cancellation." });
       }
-      return res.json({ message: "No matching booking for cancellation found." });
+      return res.json({ message: "No booking found matching the cancellation criteria." });
     } else {
-      // Check for duplicate service_id. If found, update the existing booking.
       if (bookingFromWebhook.service_id && bookingFromWebhook.service_id !== "") {
-        const duplicateIndex = db.data.bookings.findIndex(
-          (b) => b.service_id === bookingFromWebhook.service_id
-        );
-        if (duplicateIndex !== -1) {
-          db.data.bookings[duplicateIndex] = bookingFromWebhook;
+        const existingIndex = db.data.bookings.findIndex(b => b.service_id === bookingFromWebhook.service_id);
+        if (existingIndex !== -1) {
+          db.data.bookings[existingIndex] = bookingFromWebhook;
           await db.write();
-          console.log(`[WEBHOOK] Booking with service_id ${bookingFromWebhook.service_id} updated.`);
+          console.log(`Updated booking with duplicate service_id ${bookingFromWebhook.service_id}.`);
           return res.json(bookingFromWebhook);
         }
       }
-      // Otherwise, push new booking.
       db.data.bookings.push(bookingFromWebhook);
       await db.write();
-      console.log("[WEBHOOK] New booking added:", bookingFromWebhook);
+      console.log("Webhook booking added:", bookingFromWebhook);
       return res.json(bookingFromWebhook);
     }
   } catch (error) {
-    console.error("Error processing webhook:", error);
+    console.error("Error in webhook endpoint:", error);
     res.status(500).json({ error: "Unable to process webhook" });
   }
 });
