@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>Bookings Dashboard</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+      }
+      /* Container for the dashboard */
+      #root {
+        height: 100vh;
+      }
+    </style>
+    <!-- Include React and ReactDOM from CDN -->
+    <script
+      crossorigin
+      src="https://unpkg.com/react@17/umd/react.development.js"
+    ></script>
+    <script
+      crossorigin
+      src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"
+    ></script>
+    <!-- Include Babel for JSX transformation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="text/babel">
+      const { useEffect, useRef, useState } = React;
+
+      // ProgressBar now accepts a "now" prop which is passed from ClientDisplay
+      const ProgressBar = ({ now, countdown, totalTime, scheduledTime, finishTime }) => {
+        // if "now" is not provided, use new Date()
+        now = now || new Date();
+
+        if (scheduledTime && finishTime) {
+          const scheduled = new Date(scheduledTime);
+          const finish = new Date(finishTime);
+
+          if (now < scheduled) {
+            return (
+              <div style={{
+                background: '#eee',
+                borderRadius: '4px',
+                width: '100%',
+                height: '30px',
+                marginTop: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#888',
+                fontSize: '16px'
+              }}>
+                Booked for {scheduled.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </div>
+            );
+          }
+
+          if (now >= finish) {
+            return (
+              <div style={{
+                background: '#ccc',
+                borderRadius: '4px',
+                width: '100%',
+                height: '30px',
+                marginTop: '10px',
+                position: 'relative'
+              }}>
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  textAlign: 'center',
+                  lineHeight: '30px',
+                  fontSize: '22px',
+                  color: '#333'
+                }}>
+                  Finished
+                </div>
+              </div>
+            );
+          }
+
+          const elapsed = now - scheduled;
+          const totalDuration = finish - scheduled;
+          let progressPercentage = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
+          progressPercentage = Math.min(Math.max(progressPercentage, 0), 100);
+
+          const remainingMS = finish - now;
+          const remainingMinutes = Math.floor(remainingMS / 60000);
+          const remainingSeconds = ('0' + Math.floor((remainingMS % 60000) / 1000)).slice(-2);
+
+          return (
+            <div style={{
+              background: '#eee',
+              borderRadius: '4px',
+              width: '100%',
+              height: '30px',
+              marginTop: '10px',
+              position: 'relative'
+            }}>
+              <div style={{
+                height: '100%',
+                width: `${progressPercentage}%`,
+                background: 'green',
+                borderRadius: '4px'
+              }} />
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                textAlign: 'center',
+                lineHeight: '30px',
+                fontSize: '22px',
+                color: '#333'
+              }}>
+                ETA: {remainingMinutes}m {remainingSeconds}s
+              </div>
+            </div>
+          );
+        }
+
+        let progressPercentage = totalTime > 0 ? ((totalTime - countdown) / totalTime) * 100 : 0;
+        progressPercentage = Math.min(Math.max(progressPercentage, 0), 100);
+
+        return (
+          <div style={{
+            background: '#eee',
+            borderRadius: '4px',
+            width: '100%',
+            height: '30px',
+            marginTop: '10px',
+            position: 'relative'
+          }}>
+            <div style={{
+              height: '100%',
+              width: `${progressPercentage}%`,
+              background: 'green',
+              borderRadius: '4px'
+            }} />
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              textAlign: 'center',
+              lineHeight: '30px',
+              fontSize: '22px',
+              color: '#333'
+            }}>
+              ETA: {Math.floor(countdown / 60)}m {('0' + (countdown % 60)).slice(-2)}s
+            </div>
+          </div>
+        );
+      };
+
+      const BookingCard = ({ booking, now }) => {
+        if (booking.booking_status === 'Cancelled') return null;
+
+        const firstName = booking.customer_first_name && booking.customer_first_name.trim() ? booking.customer_first_name : "NIL";
+        const lastInitial = booking.customer_last_name && booking.customer_last_name.trim() ? booking.customer_last_name.charAt(0) + '.' : "NIL";
+        const serviceName = booking.service_name && booking.service_name.trim() ? booking.service_name : "NIL";
+        const bookingDescription = booking.booking_description && booking.booking_description.trim() ? booking.booking_description : "NIL";
+
+        const cardStyle = {
+          background: 'linear-gradient(45deg, #74ebd5, #acb6e5)',
+          borderRadius: '12px',
+          padding: '20px',
+          margin: '20px',
+          width: '250px',
+          fontSize: '22px',
+          position: 'relative',
+          boxShadow: 'inset 0 0 20px rgba(0, 0, 0, 0.9)',
+          overflow: 'hidden',
+          border: '1px solid white',
+          zIndex: 1000
+        };
+
+        return (
+          <div style={cardStyle}>
+            <div style={{ fontWeight: 'bold', fontSize: '48px', marginBottom: '10px', position: 'relative' }}>
+              {firstName} {lastInitial}
+            </div>
+            <div style={{ marginBottom: '10px', position: 'relative' }}>
+              {serviceName}
+            </div>
+            <div style={{ marginBottom: '10px', position: 'relative' }}>
+              {bookingDescription}
+            </div>
+            { booking.countdown !== undefined &&
+              <ProgressBar 
+                now={now}
+                countdown={booking.countdown} 
+                totalTime={booking.totalTime} 
+                scheduledTime={booking.scheduledTime} 
+                finishTime={booking.finishTime} 
+              />
+            }
+          </div>
+        );
+      };
+
+      const ClientDisplay = () => {
+        const [bookings, setBookings] = useState([]);
+        // Maintain a currentTime state that updates every second for live countdowns
+        const [currentTime, setCurrentTime] = useState(new Date());
+        const finishedContentRef = useRef(null);
+
+        const fetchBookings = () => {
+          fetch('https://touchdeprived-2025-05-05.loca.lt/bookings')
+            .then((response) => response.json())
+            .then((data) => {
+              const processedBookings = data.map(booking => {
+                const now = new Date();
+                const scheduledTime = new Date(booking.booking_date_start_tz);
+                const finishTime = new Date(booking.booking_date_end);
+                const durationMs = finishTime - scheduledTime;
+                const totalTime = Math.floor(durationMs / 60000);
+                let countdown = 0;
+                if (now < finishTime) {
+                  countdown = Math.floor((finishTime - now) / 60000);
+                }
+                return {
+                  ...booking,
+                  scheduledTime: scheduledTime.toISOString(),
+                  finishTime: finishTime.toISOString(),
+                  countdown,
+                  totalTime
+                };
+              });
+              console.log('Processed bookings:', processedBookings);
+              setBookings(processedBookings);
+            })
+            .catch((error) => {
+              console.error('Error fetching bookings:', error);
+            });
+        };
+
+        // Fetch bookings every 10 seconds
+        useEffect(() => {
+          fetchBookings();
+          const interval = setInterval(() => {
+            fetchBookings();
+          }, 10000);
+          return () => clearInterval(interval);
+        }, []);
+
+        // Update current time every second for live countdown rendering
+        useEffect(() => {
+          const timer = setInterval(() => {
+            setCurrentTime(new Date());
+          }, 1000);
+          return () => clearInterval(timer);
+        }, []);
+
+        useEffect(() => {
+          const channel = new BroadcastChannel('dashboard-updates');
+          channel.onmessage = (event) => {
+            if (event.data && event.data.type === 'refresh') {
+              fetchBookings();
+            }
+          };
+          return () => channel.close();
+        }, []);
+
+        // Use the currentTime state for all "now" references
+        const now = currentTime;
+
+        const inProgressBookings = bookings.filter(booking => {
+          if (booking.booking_status === 'Cancelled') return false;
+          const scheduledTime = new Date(booking.booking_date_start_tz);
+          const finishTime = new Date(booking.booking_date_end);
+          return now < finishTime && 
+                 (now < scheduledTime || (now >= scheduledTime && now < finishTime));
+        });
+
+        const finishedBookings = bookings.filter(booking => {
+          if (booking.booking_status === 'Cancelled') return false;
+          const finishTime = new Date(booking.booking_date_end);
+          return now >= finishTime && (now - finishTime) < 3600000;
+        });
+
+        const containerStyle = {
+          fontFamily: 'Arial, sans-serif',
+          display: 'flex',
+          height: '100vh',
+          overflow: 'hidden',
+          background: 'linear-gradient(90deg, #0f0c29, #302b63, #24243e)',
+          position: 'relative'
+        };
+
+        const logoStyle = {
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          height: '100vh',
+          width: 'auto',
+          zIndex: 900,
+          opacity: 0.1
+        };
+
+        const leftSectionStyle = {
+          flex: 4,
+          padding: '20px',
+          overflowY: 'auto',
+          position: 'relative',
+          zIndex: 1000
+        };
+
+        const rightSectionStyle = {
+          flex: 1,
+          padding: '20px',
+          borderLeft: '2px solid white',
+          overflow: 'hidden',
+          position: 'relative',
+          zIndex: 1000
+        };
+
+        const headingStyle = {
+          fontSize: '28px',
+          marginBottom: '20px',
+          color: 'white'
+        };
+
+        useEffect(() => {
+          if (finishedBookings.length >= 4 && finishedContentRef.current) {
+            const content = finishedContentRef.current;
+            const originalHeight = content.offsetHeight / 2;
+            const speed = 30;
+            const duration = originalHeight / speed;
+            content.style.animation = `verticalMarquee ${duration}s linear infinite`;
+          } else if (finishedContentRef.current) {
+            finishedContentRef.current.style.animation = 'none';
+          }
+        }, [finishedBookings]);
+
+        return (
+          <div style={containerStyle}>
+            <img src="/logo.png" alt="Logo" style={logoStyle} />
+            <div style={leftSectionStyle}>
+              <h2 style={headingStyle}>Bookings In Progress</h2>
+              <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+                {inProgressBookings.map(booking => (
+                  <BookingCard 
+                    key={booking.booking_hash_id} 
+                    booking={booking} 
+                    now={now}
+                  />
+                ))}
+              </div>
+            </div>
+            <div style={rightSectionStyle}>
+              <h2 style={headingStyle}>Finished Bookings</h2>
+              <style>{`
+                @keyframes verticalMarquee {
+                  from { transform: translateY(0); }
+                  to { transform: translateY(-50%); }
+                }
+              `}</style>
+              <div style={{ height: '100%', overflow: 'hidden' }}>
+                <div
+                  ref={finishedContentRef}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '20px'
+                  }}
+                >
+                  {finishedBookings.length ? (
+                    finishedBookings.map(booking => (
+                      <BookingCard 
+                        key={booking.booking_hash_id} 
+                        booking={booking} 
+                        now={now}
+                      />
+                    ))
+                  ) : (
+                    <p style={{ color: 'white', fontSize: '24px' }}>
+                      No finished bookings available
+                    </p>
+                  )}
+                  {finishedBookings.length >= 4 &&
+                    finishedBookings.map(booking => (
+                      <BookingCard 
+                        key={'dup-' + booking.booking_hash_id} 
+                        booking={booking} 
+                        now={now}
+                      />
+                    ))
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      ReactDOM.render(<ClientDisplay />, document.getElementById('root'));
+    </script>
+  </body>
+</html>
