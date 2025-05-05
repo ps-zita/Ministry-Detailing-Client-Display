@@ -2,10 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Bookings Dashboard</title>
     <style>
       body {
@@ -18,14 +15,8 @@
       }
     </style>
     <!-- Include React and ReactDOM from CDN -->
-    <script
-      crossorigin
-      src="https://unpkg.com/react@17/umd/react.development.js"
-    ></script>
-    <script
-      crossorigin
-      src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"
-    ></script>
+    <script crossorigin src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
     <!-- Include Babel for JSX transformation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   </head>
@@ -34,9 +25,7 @@
     <script type="text/babel">
       const { useEffect, useRef, useState } = React;
 
-      // ProgressBar now accepts a "now" prop which is passed from ClientDisplay
       const ProgressBar = ({ now, countdown, totalTime, scheduledTime, finishTime }) => {
-        // if "now" is not provided, use new Date()
         now = now || new Date();
 
         if (scheduledTime && finishTime) {
@@ -163,8 +152,6 @@
       };
 
       const BookingCard = ({ booking, now }) => {
-        if (booking.booking_status === 'Cancelled') return null;
-
         const firstName = booking.customer_first_name && booking.customer_first_name.trim() ? booking.customer_first_name : "NIL";
         const lastInitial = booking.customer_last_name && booking.customer_last_name.trim() ? booking.customer_last_name.charAt(0) + '.' : "NIL";
         const serviceName = booking.service_name && booking.service_name.trim() ? booking.service_name : "NIL";
@@ -186,13 +173,13 @@
 
         return (
           <div style={cardStyle}>
-            <div style={{ fontWeight: 'bold', fontSize: '48px', marginBottom: '10px', position: 'relative' }}>
+            <div style={{ fontWeight: 'bold', fontSize: '48px', marginBottom: '10px' }}>
               {firstName} {lastInitial}
             </div>
-            <div style={{ marginBottom: '10px', position: 'relative' }}>
+            <div style={{ marginBottom: '10px' }}>
               {serviceName}
             </div>
-            <div style={{ marginBottom: '10px', position: 'relative' }}>
+            <div style={{ marginBottom: '10px' }}>
               {bookingDescription}
             </div>
             { booking.countdown !== undefined &&
@@ -210,14 +197,13 @@
 
       const ClientDisplay = () => {
         const [bookings, setBookings] = useState([]);
-        // Maintain a currentTime state that updates every second for live countdowns
-        const [currentTime, setCurrentTime] = useState(new Date());
         const finishedContentRef = useRef(null);
 
         const fetchBookings = () => {
           fetch('https://silent-papers-unite.loca.lt/bookings')
             .then((response) => response.json())
             .then((data) => {
+              // Process each booking (calculate countdown, totalTime, etc.)
               const processedBookings = data.map(booking => {
                 const now = new Date();
                 const scheduledTime = new Date(booking.booking_date_start_tz);
@@ -236,46 +222,42 @@
                   totalTime
                 };
               });
-              console.log('Processed bookings:', processedBookings);
-              setBookings(processedBookings);
+              
+              // Group bookings by booking_hash_id
+              const bookingsByHash = {};
+              processedBookings.forEach(booking => {
+                const hash = booking.booking_hash_id;
+                if (!bookingsByHash[hash]) {
+                  bookingsByHash[hash] = [];
+                }
+                bookingsByHash[hash].push(booking);
+              });
+              
+              // Exclude groups if any booking in the group is Cancelled
+              const filteredBookings = [];
+              Object.keys(bookingsByHash).forEach(hash => {
+                const group = bookingsByHash[hash];
+                // If any booking in the group is Cancelled, skip the whole group
+                if (group.some(b => b.booking_status === 'Cancelled')) {
+                  return;
+                }
+                filteredBookings.push(...group);
+              });
+              
+              setBookings(filteredBookings);
             })
-            .catch((error) => {
-              console.error('Error fetching bookings:', error);
-            });
+            .catch((error) => console.error('Error fetching bookings:', error));
         };
 
-        // Fetch bookings every 10 seconds
         useEffect(() => {
           fetchBookings();
-          const interval = setInterval(() => {
-            fetchBookings();
-          }, 10000);
+          const interval = setInterval(fetchBookings, 10000);
           return () => clearInterval(interval);
         }, []);
 
-        // Update current time every second for live countdown rendering
-        useEffect(() => {
-          const timer = setInterval(() => {
-            setCurrentTime(new Date());
-          }, 1000);
-          return () => clearInterval(timer);
-        }, []);
-
-        useEffect(() => {
-          const channel = new BroadcastChannel('dashboard-updates');
-          channel.onmessage = (event) => {
-            if (event.data && event.data.type === 'refresh') {
-              fetchBookings();
-            }
-          };
-          return () => channel.close();
-        }, []);
-
-        // Use the currentTime state for all "now" references
-        const now = currentTime;
+        const now = new Date();
 
         const inProgressBookings = bookings.filter(booking => {
-          if (booking.booking_status === 'Cancelled') return false;
           const scheduledTime = new Date(booking.booking_date_start_tz);
           const finishTime = new Date(booking.booking_date_end);
           return now < finishTime && 
@@ -283,7 +265,6 @@
         });
 
         const finishedBookings = bookings.filter(booking => {
-          if (booking.booking_status === 'Cancelled') return false;
           const finishTime = new Date(booking.booking_date_end);
           return now >= finishTime && (now - finishTime) < 3600000;
         });
@@ -298,14 +279,14 @@
         };
 
         const logoStyle = {
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        height: 'auto',
-        width: '50%', // Adjust width as needed
-        zIndex: 900,
-        opacity: 0.1
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          height: 'auto',
+          width: '50%',
+          zIndex: 900,
+          opacity: 0.1
         };
 
         const leftSectionStyle = {
@@ -331,18 +312,6 @@
           color: 'white'
         };
 
-        useEffect(() => {
-          if (finishedBookings.length >= 4 && finishedContentRef.current) {
-            const content = finishedContentRef.current;
-            const originalHeight = content.offsetHeight / 2;
-            const speed = 30;
-            const duration = originalHeight / speed;
-            content.style.animation = `verticalMarquee ${duration}s linear infinite`;
-          } else if (finishedContentRef.current) {
-            finishedContentRef.current.style.animation = 'none';
-          }
-        }, [finishedBookings]);
-
         return (
           <div style={containerStyle}>
             <img src="https://files.catbox.moe/4y7toq.png" alt="Logo" style={logoStyle} />
@@ -360,44 +329,20 @@
             </div>
             <div style={rightSectionStyle}>
               <h2 style={headingStyle}>Finished Bookings</h2>
-              <style>{`
-                @keyframes verticalMarquee {
-                  from { transform: translateY(0); }
-                  to { transform: translateY(-50%); }
-                }
-              `}</style>
-              <div style={{ height: '100%', overflow: 'hidden' }}>
-                <div
-                  ref={finishedContentRef}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '20px'
-                  }}
-                >
-                  {finishedBookings.length ? (
-                    finishedBookings.map(booking => (
-                      <BookingCard 
-                        key={booking.booking_hash_id} 
-                        booking={booking} 
-                        now={now}
-                      />
-                    ))
-                  ) : (
-                    <p style={{ color: 'white', fontSize: '24px' }}>
-                      No finished bookings available
-                    </p>
-                  )}
-                  {finishedBookings.length >= 4 &&
-                    finishedBookings.map(booking => (
-                      <BookingCard 
-                        key={'dup-' + booking.booking_hash_id} 
-                        booking={booking} 
-                        now={now}
-                      />
-                    ))
-                  }
-                </div>
+              <div ref={finishedContentRef} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {finishedBookings.length ? (
+                  finishedBookings.map(booking => (
+                    <BookingCard 
+                      key={booking.booking_hash_id} 
+                      booking={booking} 
+                      now={now}
+                    />
+                  ))
+                ) : (
+                  <p style={{ color: 'white', fontSize: '24px' }}>
+                    No finished bookings available
+                  </p>
+                )}
               </div>
             </div>
           </div>
