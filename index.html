@@ -2,26 +2,28 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Bookings Dashboard</title>
     <style>
+      /* Apply the gradient to the entire page */
+      html,
       body {
         margin: 0;
+        padding: 0;
+        height: 100%;
         font-family: Arial, sans-serif;
+        background: linear-gradient(90deg, #0f0c29, #302b63, #24243e);
       }
-      /* Container for the dashboard */
+      
+      /* Ensure the root element spans the full height */
       #root {
-        height: 100vh;
+        min-height: 100%;
       }
-      /* Default styles for the dashboard container and sections */
+
+      /* Dashboard container is now transparent so the page background shows */
       .dashboard-container {
         display: flex;
-        height: 100vh;
-        overflow: hidden;
-        background: linear-gradient(90deg, #0f0c29, #302b63, #24243e);
+        min-height: 100vh;
         position: relative;
       }
       .left-section {
@@ -74,14 +76,14 @@
       @media only screen and (max-width: 768px) {
         .dashboard-container {
           flex-direction: column !important;
+          min-height: auto;
+          overflow: auto;
+          position: relative;
         }
-        .dashboard-container {
-        display: flex;
-        height: 120vh;
-        overflow: hidden;
-        background: linear-gradient(90deg, #0f0c29, #302b63, #24243e);
-        position: relative;
-      }
+
+        #root {
+          height: 140%;
+        }
   
         /* Move logo to the top */
         .dashboard-logo {
@@ -94,16 +96,29 @@
   
         /* Adjust BookingCard styling in mobile */
         .booking-card {
-          width: 70vw !important;       /* 90% of the viewport width */
-          margin: 10px auto !important;   /* Center the card and add vertical spacing */
-          display: block !important;      /* Stack cards vertically */
+          width: 70vw !important;
+          margin: 10px auto !important;
+          display: block !important;
         }
   
-        /* Adjust sections for mobile */
-
+        /* Combine the bookings into a single section */
+        .left-section,
         .right-section {
           border: none !important;
           width: 100%;
+          padding: 0;
+        }
+  
+        .left-section {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          align-items: flex-start; /* Prevent cards from stretching vertically */
+        }
+  
+        /* Instead of hiding finished bookings, let their content flow in line */
+        .right-section {
+          display: contents !important;
         }
   
         /* Remove undesired text elements in mobile mode */
@@ -323,7 +338,7 @@
             .then((response) => response.json())
             .then((data) => {
               // Process each booking to calculate countdown, totalTime, etc.
-              const processedBookings = data.map(booking => {
+              const processedBookings = data.map((booking) => {
                 const now = new Date();
                 const scheduledTime = new Date(booking.booking_date_start_tz);
                 const finishTime = new Date(booking.booking_date_end);
@@ -344,7 +359,7 @@
   
               // Group bookings by booking_hash_id.
               const bookingsByHash = {};
-              processedBookings.forEach(booking => {
+              processedBookings.forEach((booking) => {
                 const hash = booking.booking_hash_id;
                 if (!bookingsByHash[hash]) {
                   bookingsByHash[hash] = [];
@@ -354,9 +369,9 @@
   
               // Exclude groups if any booking in that group is Cancelled.
               const filteredBookings = [];
-              Object.keys(bookingsByHash).forEach(hash => {
+              Object.keys(bookingsByHash).forEach((hash) => {
                 const group = bookingsByHash[hash];
-                if (group.some(b => b.booking_status === 'Cancelled')) {
+                if (group.some((b) => b.booking_status === 'Cancelled')) {
                   return;
                 }
                 filteredBookings.push(...group);
@@ -364,7 +379,7 @@
   
               setBookings(filteredBookings);
             })
-            .catch(error => console.error('Error fetching bookings:', error));
+            .catch((error) => console.error('Error fetching bookings:', error));
         };
   
         useEffect(() => {
@@ -376,13 +391,13 @@
         const now = new Date();
   
         // Filter bookings into in-progress and finished.
-        const inProgressBookings = bookings.filter(booking => {
+        const inProgressBookings = bookings.filter((booking) => {
           const scheduledTime = new Date(booking.booking_date_start_tz);
           const finishTime = new Date(booking.booking_date_end);
           return now < finishTime && (now < scheduledTime || (now >= scheduledTime && now < finishTime));
         });
   
-        const finishedBookings = bookings.filter(booking => {
+        const finishedBookings = bookings.filter((booking) => {
           const finishTime = new Date(booking.booking_date_end);
           return now >= finishTime && (now - finishTime) < 3600000;
         });
@@ -393,23 +408,20 @@
             <div className="left-section">
               <h2 className="progress-heading heading">Bookings In Progress</h2>
               <div style={{ display: 'flex', flexWrap: 'wrap' }}>
-                {inProgressBookings.map(booking => (
-                  <BookingCard 
-                    key={booking.booking_hash_id} 
-                    booking={booking} 
-                  />
+                {inProgressBookings.map((booking) => (
+                  <BookingCard key={booking.booking_hash_id} booking={booking} />
                 ))}
               </div>
             </div>
             <div className="right-section">
               <h2 className="finished-heading heading">Finished Bookings</h2>
-              <div ref={finishedContentRef} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div
+                ref={finishedContentRef}
+                style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center' }}
+              >
                 {finishedBookings.length ? (
-                  finishedBookings.map(booking => (
-                    <BookingCard 
-                      key={booking.booking_hash_id} 
-                      booking={booking} 
-                    />
+                  finishedBookings.map((booking) => (
+                    <BookingCard key={booking.booking_hash_id} booking={booking} />
                   ))
                 ) : (
                   <p className="no-finished-text" style={{ color: 'white', fontSize: '24px' }}>
