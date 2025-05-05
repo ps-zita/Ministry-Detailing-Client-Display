@@ -113,10 +113,10 @@
           display: flex;
           flex-wrap: wrap;
           justify-content: center;
-          align-items: flex-start; /* Prevent cards from stretching vertically */
+          align-items: flex-start;
         }
   
-        /* Instead of hiding finished bookings, let their content flow in line */
+        /* Instead of hiding finished bookings, let their content flow inline */
         .right-section {
           display: contents !important;
         }
@@ -146,7 +146,7 @@
     <script type="text/babel">
       const { useEffect, useState, useRef } = React;
       
-      // ProgressBar now updates every second using its own timer.
+      // ProgressBar component using proper time handling.
       const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
         const [currentTime, setCurrentTime] = useState(new Date());
   
@@ -154,68 +154,15 @@
           const timer = setInterval(() => {
             setCurrentTime(new Date());
           }, 1000);
-  
           return () => clearInterval(timer);
         }, []);
   
-        if (scheduledTime && finishTime) {
-          const scheduled = new Date(scheduledTime);
-          const finish = new Date(finishTime);
+        // Convert to Date objects if not already.
+        const scheduled = scheduledTime instanceof Date ? scheduledTime : new Date(scheduledTime);
+        const finish = finishTime instanceof Date ? finishTime : new Date(finishTime);
   
-          if (currentTime < scheduled) {
-            return (
-              <div style={{
-                background: '#eee',
-                borderRadius: '4px',
-                width: '100%',
-                height: '30px',
-                marginTop: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#888',
-                fontSize: '16px'
-              }}>
-                Booked for {scheduled.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </div>
-            );
-          }
-  
-          if (currentTime >= finish) {
-            return (
-              <div style={{
-                background: '#ccc',
-                borderRadius: '4px',
-                width: '100%',
-                height: '30px',
-                marginTop: '10px',
-                position: 'relative'
-              }}>
-                <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  textAlign: 'center',
-                  lineHeight: '30px',
-                  fontSize: '22px',
-                  color: '#333'
-                }}>
-                  Finished
-                </div>
-              </div>
-            );
-          }
-  
-          const elapsed = currentTime - scheduled;
-          const totalDuration = finish - scheduled;
-          let progressPercentage = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
-          progressPercentage = Math.min(Math.max(progressPercentage, 0), 100);
-  
-          const remainingMS = finish - currentTime;
-          const remainingMinutes = Math.floor(remainingMS / 60000);
-          const remainingSeconds = ('0' + Math.floor((remainingMS % 60000) / 1000)).slice(-2);
-  
+        // Before the scheduled time.
+        if (currentTime.getTime() < scheduled.getTime()) {
           return (
             <div style={{
               background: '#eee',
@@ -223,14 +170,28 @@
               width: '100%',
               height: '30px',
               marginTop: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#888',
+              fontSize: '16px'
+            }}>
+              Booked for {scheduled.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </div>
+          );
+        }
+  
+        // If finished.
+        if (currentTime.getTime() >= finish.getTime()) {
+          return (
+            <div style={{
+              background: '#ccc',
+              borderRadius: '4px',
+              width: '100%',
+              height: '30px',
+              marginTop: '10px',
               position: 'relative'
             }}>
-              <div style={{
-                height: '100%',
-                width: `${progressPercentage}%`,
-                background: 'green',
-                borderRadius: '4px'
-              }} />
               <div style={{
                 position: 'absolute',
                 top: 0,
@@ -241,18 +202,21 @@
                 fontSize: '22px',
                 color: '#333'
               }}>
-                ETA: {remainingMinutes}m {remainingSeconds}s
+                Finished
               </div>
             </div>
           );
         }
   
-        // Fallback mode using countdown.
-        let progressPercentage = totalTime > 0 ? ((totalTime - countdown) / totalTime) * 100 : 0;
+        // Calculate progress.
+        const elapsed = currentTime.getTime() - scheduled.getTime();
+        const totalDuration = finish.getTime() - scheduled.getTime();
+        let progressPercentage = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
         progressPercentage = Math.min(Math.max(progressPercentage, 0), 100);
   
-        const remainingMinutes = Math.floor(countdown / 60);
-        const remainingSeconds = ('0' + (countdown % 60)).slice(-2);
+        const remainingMS = finish.getTime() - currentTime.getTime();
+        const remainingMinutes = Math.floor(remainingMS / 60000);
+        const remainingSeconds = ('0' + Math.floor((remainingMS % 60000) / 1000)).slice(-2);
   
         return (
           <div style={{
@@ -291,7 +255,6 @@
         const serviceName = booking.service_name && booking.service_name.trim() ? booking.service_name : "NIL";
         const bookingDescription = booking.booking_description && booking.booking_description.trim() ? booking.booking_description : "NIL";
   
-        // Default card styles (inline) for desktop
         const cardStyle = {
           background: 'linear-gradient(45deg, #74ebd5, #acb6e5)',
           borderRadius: '12px',
@@ -337,27 +300,27 @@
           fetch('https://silent-papers-unite.loca.lt/bookings')
             .then((response) => response.json())
             .then((data) => {
-              // Process each booking to calculate countdown, totalTime, etc.
+              // Process each booking while preserving Date objects.
+              // The finish time is computed by adding booking_duration minutes to the local start time.
               const processedBookings = data.map((booking) => {
-                const now = new Date();
-                const scheduledTime = new Date(booking.booking_date_start_tz);
-                const finishTime = new Date(booking.booking_date_end);
-                const durationMs = finishTime - scheduledTime;
-                const totalTime = Math.floor(durationMs / 60000);
+                const current = new Date();
+                const scheduled = new Date(booking.booking_date_start_tz);
+                const durationMs = parseInt(booking.booking_duration, 10) * 60000;
+                const finish = new Date(scheduled.getTime() + durationMs);
                 let countdown = 0;
-                if (now < finishTime) {
-                  countdown = Math.floor((finishTime - now) / 60000);
+                if (current.getTime() < finish.getTime()) {
+                  countdown = Math.floor((finish.getTime() - current.getTime()) / 60000);
                 }
                 return {
                   ...booking,
-                  scheduledTime: scheduledTime.toISOString(),
-                  finishTime: finishTime.toISOString(),
+                  scheduledTime: scheduled,  // preserved as Date object
+                  finishTime: finish,        // calculated finish time
                   countdown,
-                  totalTime
+                  totalTime: Math.floor(durationMs / 60000)
                 };
               });
   
-              // Group bookings by booking_hash_id.
+              // Group bookings by booking_hash_id and filter out any groups with Cancelled status.
               const bookingsByHash = {};
               processedBookings.forEach((booking) => {
                 const hash = booking.booking_hash_id;
@@ -367,7 +330,6 @@
                 bookingsByHash[hash].push(booking);
               });
   
-              // Exclude groups if any booking in that group is Cancelled.
               const filteredBookings = [];
               Object.keys(bookingsByHash).forEach((hash) => {
                 const group = bookingsByHash[hash];
@@ -390,16 +352,13 @@
   
         const now = new Date();
   
-        // Filter bookings into in-progress and finished.
+        // Filter bookings using the preserved Date objects.
         const inProgressBookings = bookings.filter((booking) => {
-          const scheduledTime = new Date(booking.booking_date_start_tz);
-          const finishTime = new Date(booking.booking_date_end);
-          return now < finishTime && (now < scheduledTime || (now >= scheduledTime && now < finishTime));
+          return now.getTime() >= booking.scheduledTime.getTime() && now.getTime() < booking.finishTime.getTime();
         });
   
         const finishedBookings = bookings.filter((booking) => {
-          const finishTime = new Date(booking.booking_date_end);
-          return now >= finishTime && (now - finishTime) < 3600000;
+          return now.getTime() >= booking.finishTime.getTime();
         });
   
         return (
