@@ -298,13 +298,14 @@
         };
 
         const logoStyle = {
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          height: '100vh',
-          width: 'auto',
-          zIndex: 900,
-          opacity: 0.1
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        height: 'auto',
+        width: '50%', // Adjust width as needed
+        zIndex: 900,
+        opacity: 0.1
         };
 
         const leftSectionStyle = {
@@ -344,7 +345,7 @@
 
         return (
           <div style={containerStyle}>
-            <img src="/logo.png" alt="Logo" style={logoStyle} />
+            <img src="https://files.catbox.moe/4y7toq.png" alt="Logo" style={logoStyle} />
             <div style={leftSectionStyle}>
               <h2 style={headingStyle}>Bookings In Progress</h2>
               <div style={{ display: 'flex', flexWrap: 'wrap' }}>
