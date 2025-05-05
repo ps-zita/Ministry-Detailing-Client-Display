@@ -144,10 +144,13 @@
   <body>
     <div id="root"></div>
     <script type="text/babel">
-      const { useEffect, useState, useRef } = React;
+      const { useState, useEffect, useRef } = React;
       
-      // ProgressBar component using proper time handling.
-      const ProgressBar = ({ countdown, totalTime, scheduledTime, finishTime }) => {
+      // ProgressBar component that displays:
+      // - A countdown for upcoming bookings, indicating when the booking starts.
+      // - A progress indicator for bookings in progress.
+      // - A "Finished" message for bookings that have ended.
+      const ProgressBar = ({ scheduledTime, finishTime }) => {
         const [currentTime, setCurrentTime] = useState(new Date());
   
         useEffect(() => {
@@ -157,31 +160,41 @@
           return () => clearInterval(timer);
         }, []);
   
-        // Convert to Date objects if not already.
+        // Ensure scheduledTime and finishTime are Date objects.
         const scheduled = scheduledTime instanceof Date ? scheduledTime : new Date(scheduledTime);
         const finish = finishTime instanceof Date ? finishTime : new Date(finishTime);
   
-        // Before the scheduled time.
+        // If the booking is in the future, show a countdown until the booking starts.
         if (currentTime.getTime() < scheduled.getTime()) {
+          const untilMs = scheduled.getTime() - currentTime.getTime();
+          const untilMinutes = Math.floor(untilMs / 60000);
+          const untilSeconds = ('0' + Math.floor((untilMs % 60000) / 1000)).slice(-2);
+  
           return (
             <div style={{
               background: '#eee',
               borderRadius: '4px',
               width: '100%',
-              height: '30px',
+              height: '40px',
               marginTop: '10px',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
               color: '#888',
               fontSize: '16px'
             }}>
-              Booked for {scheduled.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              <div>
+                Booking starts at {scheduled.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </div>
+              <div>
+                Starts in: {untilMinutes}m {untilSeconds}s
+              </div>
             </div>
           );
         }
   
-        // If finished.
+        // If the booking has finished, display a finished message.
         if (currentTime.getTime() >= finish.getTime()) {
           return (
             <div style={{
@@ -190,25 +203,18 @@
               width: '100%',
               height: '30px',
               marginTop: '10px',
-              position: 'relative'
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#333',
+              fontSize: '22px'
             }}>
-              <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                textAlign: 'center',
-                lineHeight: '30px',
-                fontSize: '22px',
-                color: '#333'
-              }}>
-                Finished
-              </div>
+              Finished
             </div>
           );
         }
   
-        // Calculate progress.
+        // Booking is in progress; show a progress bar with countdown to finish.
         const elapsed = currentTime.getTime() - scheduled.getTime();
         const totalDuration = finish.getTime() - scheduled.getTime();
         let progressPercentage = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
@@ -249,11 +255,12 @@
         );
       };
   
+      // BookingCard displays the details of a booking along with the ProgressBar.
       const BookingCard = ({ booking }) => {
-        const firstName = booking.customer_first_name && booking.customer_first_name.trim() ? booking.customer_first_name : "NIL";
-        const lastInitial = booking.customer_last_name && booking.customer_last_name.trim() ? booking.customer_last_name.charAt(0) + '.' : "NIL";
-        const serviceName = booking.service_name && booking.service_name.trim() ? booking.service_name : "NIL";
-        const bookingDescription = booking.booking_description && booking.booking_description.trim() ? booking.booking_description : "NIL";
+        const firstName = booking.customer_first_name?.trim() || "NIL";
+        const lastInitial = booking.customer_last_name?.trim() ? booking.customer_last_name.charAt(0) + '.' : "NIL";
+        const serviceName = booking.service_name?.trim() || "NIL";
+        const bookingDescription = booking.booking_description?.trim() || "NIL";
   
         const cardStyle = {
           background: 'linear-gradient(45deg, #74ebd5, #acb6e5)',
@@ -282,8 +289,6 @@
             </div>
             {booking.scheduledTime && booking.finishTime && (
               <ProgressBar 
-                countdown={booking.countdown} 
-                totalTime={booking.totalTime} 
                 scheduledTime={booking.scheduledTime} 
                 finishTime={booking.finishTime} 
               />
@@ -292,37 +297,38 @@
         );
       };
   
+      // ClientDisplay fetches bookings and categorizes them into Scheduled, In Progress, and Finished.
+      // It uses the local start time and booking_duration to compute the finish time.
       const ClientDisplay = () => {
         const [bookings, setBookings] = useState([]);
         const finishedContentRef = useRef(null);
   
         const fetchBookings = () => {
           fetch('https://silent-papers-unite.loca.lt/bookings')
-            .then((response) => response.json())
+            .then(response => response.json())
             .then((data) => {
-              // Process each booking while preserving Date objects.
-              // The finish time is computed by adding booking_duration minutes to the local start time.
-              const processedBookings = data.map((booking) => {
-                const current = new Date();
+              const processedBookings = data.map(booking => {
+                const now = new Date();
                 const scheduled = new Date(booking.booking_date_start_tz);
+                // Assume booking_duration field is in minutes.
                 const durationMs = parseInt(booking.booking_duration, 10) * 60000;
                 const finish = new Date(scheduled.getTime() + durationMs);
                 let countdown = 0;
-                if (current.getTime() < finish.getTime()) {
-                  countdown = Math.floor((finish.getTime() - current.getTime()) / 60000);
+                if (now.getTime() < finish.getTime()) {
+                  countdown = Math.floor((finish.getTime() - now.getTime()) / 60000);
                 }
                 return {
                   ...booking,
-                  scheduledTime: scheduled,  // preserved as Date object
-                  finishTime: finish,        // calculated finish time
+                  scheduledTime: scheduled,  // keep as Date object
+                  finishTime: finish,         // calculated finish time
                   countdown,
                   totalTime: Math.floor(durationMs / 60000)
                 };
               });
   
-              // Group bookings by booking_hash_id and filter out any groups with Cancelled status.
+              // Group bookings by booking_hash_id and filter out any with Cancelled status.
               const bookingsByHash = {};
-              processedBookings.forEach((booking) => {
+              processedBookings.forEach(booking => {
                 const hash = booking.booking_hash_id;
                 if (!bookingsByHash[hash]) {
                   bookingsByHash[hash] = [];
@@ -331,9 +337,9 @@
               });
   
               const filteredBookings = [];
-              Object.keys(bookingsByHash).forEach((hash) => {
+              Object.keys(bookingsByHash).forEach(hash => {
                 const group = bookingsByHash[hash];
-                if (group.some((b) => b.booking_status === 'Cancelled')) {
+                if (group.some(b => b.booking_status === 'Cancelled')) {
                   return;
                 }
                 filteredBookings.push(...group);
@@ -341,7 +347,7 @@
   
               setBookings(filteredBookings);
             })
-            .catch((error) => console.error('Error fetching bookings:', error));
+            .catch(error => console.error('Error fetching bookings:', error));
         };
   
         useEffect(() => {
@@ -353,33 +359,34 @@
         const now = new Date();
   
         // Filter bookings using the preserved Date objects.
-        const inProgressBookings = bookings.filter((booking) => {
-          return now.getTime() >= booking.scheduledTime.getTime() && now.getTime() < booking.finishTime.getTime();
-        });
-  
-        const finishedBookings = bookings.filter((booking) => {
-          return now.getTime() >= booking.finishTime.getTime();
-        });
+        const scheduledBookings = bookings.filter(booking => booking.scheduledTime.getTime() > now.getTime());
+        const inProgressBookings = bookings.filter(booking => 
+          now.getTime() >= booking.scheduledTime.getTime() && now.getTime() < booking.finishTime.getTime()
+        );
+        const finishedBookings = bookings.filter(booking => now.getTime() >= booking.finishTime.getTime());
   
         return (
           <div className="dashboard-container">
             <img src="https://files.catbox.moe/4y7toq.png" alt="Logo" className="dashboard-logo" />
             <div className="left-section">
-              <h2 className="progress-heading heading">Bookings In Progress</h2>
+              <h2 className="progress-heading heading">Scheduled & In Progress Bookings</h2>
               <div style={{ display: 'flex', flexWrap: 'wrap' }}>
-                {inProgressBookings.map((booking) => (
-                  <BookingCard key={booking.booking_hash_id} booking={booking} />
-                ))}
+                {scheduledBookings.length === 0 && inProgressBookings.length === 0 ? (
+                  <p style={{ color: 'white', fontSize: '24px' }}>
+                    No upcoming or active bookings available
+                  </p>
+                ) : (
+                  [...scheduledBookings, ...inProgressBookings].map(booking => (
+                    <BookingCard key={booking.booking_hash_id} booking={booking} />
+                  ))
+                )}
               </div>
             </div>
             <div className="right-section">
               <h2 className="finished-heading heading">Finished Bookings</h2>
-              <div
-                ref={finishedContentRef}
-                style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center' }}
-              >
+              <div ref={finishedContentRef} style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center' }}>
                 {finishedBookings.length ? (
-                  finishedBookings.map((booking) => (
+                  finishedBookings.map(booking => (
                     <BookingCard key={booking.booking_hash_id} booking={booking} />
                   ))
                 ) : (
