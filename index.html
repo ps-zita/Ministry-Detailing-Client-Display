@@ -5,13 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Bookings Dashboard</title>
     <style>
-      /* Apply the gradient to the entire page */
+      /* Apply the gradient to the entire page and disable scrolling */
       html,
       body {
         margin: 0;
         padding: 0;
         height: 100%;
         font-family: Arial, sans-serif;
+        overflow: hidden;
         background: linear-gradient(90deg, #0f0c29, #302b63, #24243e);
       }
       
@@ -70,6 +71,23 @@
         font-size: 28px;
         margin-bottom: 20px;
         color: white;
+      }
+
+      /* Marquee container for finished bookings */
+      .marquee-container {
+        display: flex;
+        gap: 20px;
+        /* Duplicate the content to create a seamless scroll effect */
+        white-space: nowrap;
+        animation: marquee 20s linear infinite;
+      }
+      @keyframes marquee {
+        0% {
+          transform: translateX(100%);
+        }
+        100% {
+          transform: translateX(-100%);
+        }
       }
       
       /* Mobile-specific styles (applied only on mobile aspect ratios) */
@@ -300,7 +318,6 @@
       // ClientDisplay fetches bookings and categorizes them.
       const ClientDisplay = () => {
         const [bookings, setBookings] = useState([]);
-        const finishedContentRef = useRef(null);
   
         const fetchBookings = () => {
           fetch('https://silent-papers-unite.loca.lt/bookings')
@@ -351,18 +368,26 @@
             .catch(error => console.error('Error fetching bookings:', error));
         };
   
+        // Fetch bookings on page refresh and then every minute (60000ms)
         useEffect(() => {
           fetchBookings();
-          const interval = setInterval(fetchBookings, 10000);
+          const interval = setInterval(fetchBookings, 60000);
           return () => clearInterval(interval);
         }, []);
   
         const now = new Date();
+        // Scheduled bookings: those that haven't started yet.
         const scheduledBookings = bookings.filter(booking => booking.scheduledTime.getTime() > now.getTime());
+        // In-progress bookings: those that have started but haven't finished.
         const inProgressBookings = bookings.filter(booking => 
           now.getTime() >= booking.scheduledTime.getTime() && now.getTime() < booking.finishTime.getTime()
         );
-        const finishedBookings = bookings.filter(booking => now.getTime() >= booking.finishTime.getTime());
+        // Finished bookings: only include finished bookings that are within an hour after finish time.
+        const finishedBookings = bookings.filter(booking => {
+          const finishedTime = booking.finishTime.getTime();
+          const oneHourAfter = finishedTime + 3600000;
+          return now.getTime() >= finishedTime && now.getTime() <= oneHourAfter;
+        });
   
         return (
           <div className="dashboard-container">
@@ -383,22 +408,26 @@
             </div>
             <div className="right-section">
               <h2 className="finished-heading heading">Finished Bookings</h2>
-              <div ref={finishedContentRef} style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center' }}>
-                {finishedBookings.length ? (
-                  finishedBookings.map(booking => (
+              {finishedBookings.length ? (
+                <div className="marquee-container">
+                  {finishedBookings.map(booking => (
                     <BookingCard key={booking.booking_hash_id} booking={booking} />
-                  ))
-                ) : (
-                  <p className="no-finished-text" style={{ color: 'white', fontSize: '24px' }}>
-                    No finished bookings available
-                  </p>
-                )}
-              </div>
+                  ))}
+                  {/* Duplicate the finished bookings list to ensure seamless marquee scroll */}
+                  {finishedBookings.map(booking => (
+                    <BookingCard key={booking.booking_hash_id + "_dup"} booking={booking} />
+                  ))}
+                </div>
+              ) : (
+                <p className="no-finished-text" style={{ color: 'white', fontSize: '24px' }}>
+                  No finished bookings available
+                </p>
+              )}
             </div>
           </div>
         );
       };
-  
+      
       ReactDOM.render(<ClientDisplay />, document.getElementById('root'));
     </script>
   </body>
