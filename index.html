@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Bookings Dashboard</title>
     <style>
-      /* Apply the gradient to the entire page and disable scrolling */
+      /* Global styles */
       html,
       body {
         margin: 0;
@@ -16,17 +16,17 @@
         background: linear-gradient(90deg, #0f0c29, #302b63, #24243e);
       }
       
-      /* Ensure the root element spans the full height */
       #root {
         min-height: 100%;
       }
-
-      /* Dashboard container is now transparent so the page background shows */
+      
+      /* Dashboard container splits into left (for scheduled/in progress) and right (for finished) */
       .dashboard-container {
         display: flex;
         min-height: 100vh;
         position: relative;
       }
+      
       .left-section {
         flex: 4;
         padding: 20px;
@@ -34,25 +34,28 @@
         position: relative;
         z-index: 1000;
       }
+      
       .right-section {
         flex: 1;
         padding: 20px;
         border-left: 2px solid white;
-        overflow: hidden;
         position: relative;
         z-index: 1000;
       }
+      
+      /* Logo placed fixed at the center */
       .dashboard-logo {
-        position: absolute;
+        position: fixed;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        height: auto;
         width: 50%;
+        height: auto;
         z-index: 900;
         opacity: 0.1;
       }
-      /* BookingCard default style */
+      
+      /* Booking card styles */
       .booking-card {
         background: linear-gradient(45deg, #624a2e, #4f2e1e);
         border-radius: 12px;
@@ -63,40 +66,50 @@
         position: relative;
         box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.9);
         overflow: hidden;
-        /* Change border color to match the progress bar's primary color (#d4a373) */
         border: 1px solid #d4a373;
         z-index: 1000;
       }
-      /* Heading style */
+      
       .heading {
         font-size: 28px;
         margin-bottom: 20px;
         color: white;
       }
       
-      /* Vertical marquee for finished bookings; applies only if there are at least 4 finished cards */
+      /* Marquee styles */
+      /* The wrapper spans from just below the Finished Bookings heading to the bottom of the viewport */
+      .marquee-wrapper {
+        height: calc(100vh - 80px);
+        overflow: hidden;
+        position: relative;
+      }
+      
+      /* Infinite vertical marquee for finished bookings;
+         We reduce the animation duration to 30s (twice as fast as 60s) */
       .marquee-container {
         display: flex;
         flex-direction: column;
         gap: 20px;
-        animation: marquee 20s linear infinite;
+        animation: marquee 10s linear infinite;
       }
+      
       @keyframes marquee {
         0% {
-          transform: translateY(100%);
+          transform: translateY(0);
         }
         100% {
-          transform: translateY(-100%);
+          transform: translateY(-50%);
         }
       }
-      /* Static container if less than 4 finished cards */
+      
+      /* Static container if fewer than 4 finished cards */
       .marquee-container-static {
         display: flex;
         flex-direction: column;
         gap: 20px;
       }
-
-      /* Updated progress bar styles with amber hues for better contrast */
+      
+      /* Progress bar styles */
       .progress-bar-container {
         position: relative;
         background: #eee;
@@ -106,11 +119,13 @@
         margin-top: 10px;
         overflow: hidden;
       }
+      
       .progress-bar {
         background: linear-gradient(90deg, #d4a373, #c78642);
         border-radius: 4px;
         height: 100%;
       }
+      
       .progress-bar-text {
         position: absolute;
         top: 0;
@@ -122,60 +137,54 @@
         color: #333;
       }
       
-      /* Mobile-specific styles (applied only on mobile aspect ratios) */
+      /* Mobile-specific styles */
       @media only screen and (max-width: 768px) {
         .dashboard-container {
-          flex-direction: column !important;
-          min-height: auto;
+          flex-direction: column;
           overflow: auto;
-          position: relative;
+          min-height: auto;
         }
-
+        
         #root {
           height: 140%;
         }
-  
-        /* Move logo to the top */
+        
         .dashboard-logo {
-          position: static !important;
+          position: static;
           transform: none;
           width: 80%;
           margin: 20px auto;
           display: block;
         }
-  
-        /* Adjust BookingCard styling in mobile */
+        
         .booking-card {
-          width: 70vw !important;
-          margin: 10px auto !important;
-          display: block !important;
+          width: 70vw;
+          margin: 10px auto;
+          display: block;
         }
-  
-        /* Combine the bookings into a single section */
+        
         .left-section,
         .right-section {
-          border: none !important;
+          border: none;
           width: 100%;
           padding: 0;
         }
-  
+        
         .left-section {
           display: flex;
           flex-wrap: wrap;
           justify-content: center;
           align-items: flex-start;
         }
-  
-        /* Instead of hiding finished bookings, let their content flow inline */
+        
         .right-section {
-          display: contents !important;
+          display: contents;
         }
-  
-        /* Remove undesired text elements in mobile mode */
+        
         .progress-heading,
         .finished-heading,
         .no-finished-text {
-          display: none !important;
+          display: none;
         }
       }
     </style>
@@ -190,7 +199,7 @@
     <script type="text/babel">
       const { useState, useEffect } = React;
       
-      // ProgressBar component that displays a countdown, progress indicator, or finished state.
+      // ProgressBar component displays countdown, progress, or finished status.
       const ProgressBar = ({ scheduledTime, finishTime }) => {
         const [currentTime, setCurrentTime] = useState(new Date());
   
@@ -202,12 +211,10 @@
         const scheduled = scheduledTime instanceof Date ? scheduledTime : new Date(scheduledTime);
         const finish = finishTime instanceof Date ? finishTime : new Date(finishTime);
   
-        // If current time is before scheduled, show countdown.
         if (currentTime.getTime() < scheduled.getTime()) {
           const untilMs = scheduled.getTime() - currentTime.getTime();
           const untilMinutes = Math.floor(untilMs / 60000);
           const untilSeconds = ('0' + Math.floor((untilMs % 60000) / 1000)).slice(-2);
-  
           return (
             <div style={{
               background: '#eee',
@@ -232,7 +239,6 @@
           );
         }
   
-        // If finished, show finished state.
         if (currentTime.getTime() >= finish.getTime()) {
           return (
             <div style={{
@@ -252,7 +258,6 @@
           );
         }
   
-        // Otherwise, show progress.
         const elapsed = currentTime.getTime() - scheduled.getTime();
         const totalDuration = finish.getTime() - scheduled.getTime();
         let progressPercentage = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
@@ -272,19 +277,13 @@
         );
       };
       
-      // BookingCard displays booking_description (as header), service name, and progress indicator.
+      // BookingCard displays booking details and a progress bar.
       const BookingCard = ({ booking }) => {
         const bookingDescription = booking.booking_description?.trim() || "NIL";
         const serviceName = booking.service_name?.trim() || "NIL";
-  
-        // Card Settings
-        const cardWidth = 250; // total card width in pixels
-        const cardPadding = 20 * 2; // left + right padding (20px each side)
-  
-        // Estimate responsive font size for the booking description.
+        const cardWidth = 250;
         const estimatedFontSize = cardWidth / (bookingDescription.length * 0.6);
         const computedFontSize = Math.min(48, Math.max(24, estimatedFontSize));
-  
         const cardStyle = {
           background: 'linear-gradient(45deg, #624a2e, #4f2e1e)',
           borderRadius: '12px',
@@ -298,12 +297,11 @@
           border: '1px solid #d4a373',
           zIndex: 1000
         };
-  
         return (
           <div className="booking-card" style={cardStyle}>
-            <div style={{ 
-              fontWeight: 'bold', 
-              marginBottom: '10px', 
+            <div style={{
+              fontWeight: 'bold',
+              marginBottom: '10px',
               color: 'black',
               fontSize: `${computedFontSize}px`,
               lineHeight: 1.2
@@ -315,23 +313,21 @@
             </div>
             {booking.scheduledTime && booking.finishTime && (
               <ProgressBar 
-                scheduledTime={booking.scheduledTime} 
-                finishTime={booking.finishTime} 
+                scheduledTime={booking.scheduledTime}
+                finishTime={booking.finishTime}
               />
             )}
           </div>
         );
       };
-  
-      // ClientDisplay fetches bookings and categorizes them.
+      
+      // ClientDisplay fetches and categorizes bookings.
       const ClientDisplay = () => {
         const [bookings, setBookings] = useState([]);
-  
         const fetchBookings = () => {
           fetch('https://silent-papers-unite.loca.lt/bookings')
             .then(response => response.json())
             .then((data) => {
-              const now = new Date();
               const processedBookings = data.map(booking => {
                 const scheduled = new Date(booking.booking_date_start_tz);
                 const durationMs = parseInt(booking.booking_duration, 10) * 60000;
@@ -343,7 +339,6 @@
                 };
               });
   
-              // Group by booking_hash_id and filter out any with Cancelled status.
               const bookingsByHash = {};
               processedBookings.forEach(booking => {
                 const hash = booking.booking_hash_id;
@@ -356,9 +351,7 @@
               const filteredBookings = [];
               Object.keys(bookingsByHash).forEach(hash => {
                 const group = bookingsByHash[hash];
-                if (group.some(b => b.booking_status === 'Cancelled')) {
-                  return;
-                }
+                if (group.some(b => b.booking_status === 'Cancelled')) return;
                 const latestBooking = group.reduce((prev, curr) =>
                   new Date(curr.booking_created_at) > new Date(prev.booking_created_at) ? curr : prev
                 , group[0]);
@@ -369,30 +362,26 @@
             })
             .catch(error => console.error('Error fetching bookings:', error));
         };
-  
-        // Fetch bookings on page refresh and then every minute.
+        
         useEffect(() => {
           fetchBookings();
           const interval = setInterval(fetchBookings, 60000);
           return () => clearInterval(interval);
         }, []);
-  
+        
         const now = new Date();
-        // Scheduled bookings: those that haven't started yet.
         const scheduledBookings = bookings.filter(booking => booking.scheduledTime.getTime() > now.getTime());
-        // In-progress bookings: those that have started but haven't finished.
-        const inProgressBookings = bookings.filter(booking => 
+        const inProgressBookings = bookings.filter(booking =>
           now.getTime() >= booking.scheduledTime.getTime() && now.getTime() < booking.finishTime.getTime()
         );
-        // Finished bookings: only include finished bookings within an hour after finish time.
         const finishedBookings = bookings.filter(booking => {
           const finishedTime = booking.finishTime.getTime();
           const oneHourAfter = finishedTime + 3600000;
           return now.getTime() >= finishedTime && now.getTime() <= oneHourAfter;
         });
   
-        // Determine marquee container style (vertical marquee if 4 or more finished cards).
-        const marqueeClass = finishedBookings.length >= 4 ? "marquee-container" : "marquee-container-static";
+        // If there are 4 or more finished bookings, use the animated marquee.
+        const useMarquee = finishedBookings.length >= 4;
   
         return (
           <div className="dashboard-container">
@@ -413,23 +402,24 @@
             </div>
             <div className="right-section">
               <h2 className="finished-heading heading">Finished Bookings</h2>
-              {finishedBookings.length ? (
-                <div className={marqueeClass}>
-                  {finishedBookings.map(booking => (
-                    <BookingCard key={booking.booking_hash_id} booking={booking} />
-                  ))}
-                  {/* Duplicate finished bookings for seamless marquee when animation is active */}
-                  {finishedBookings.length >= 4 &&
-                    finishedBookings.map(booking => (
+              <div className="marquee-wrapper">
+                {useMarquee ? (
+                  <div className="marquee-container">
+                    {finishedBookings.map(booking => (
+                      <BookingCard key={booking.booking_hash_id} booking={booking} />
+                    ))}
+                    {finishedBookings.map(booking => (
                       <BookingCard key={booking.booking_hash_id + "_dup"} booking={booking} />
-                    ))
-                  }
-                </div>
-              ) : (
-                <p className="no-finished-text" style={{ color: 'white', fontSize: '24px' }}>
-                  No finished bookings available
-                </p>
-              )}
+                    ))}
+                  </div>
+                ) : (
+                  <div className="marquee-container-static">
+                    {finishedBookings.map(booking => (
+                      <BookingCard key={booking.booking_hash_id} booking={booking} />
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         );
