@@ -130,14 +130,8 @@
       }
     </style>
     <!-- Include React and ReactDOM from CDN -->
-    <script
-      crossorigin
-      src="https://unpkg.com/react@17/umd/react.development.js"
-    ></script>
-    <script
-      crossorigin
-      src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"
-    ></script>
+    <script crossorigin src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
     <!-- Include Babel for JSX transformation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   </head>
@@ -146,10 +140,7 @@
     <script type="text/babel">
       const { useState, useEffect, useRef } = React;
       
-      // ProgressBar component that displays:
-      // - A countdown for upcoming bookings, indicating when the booking starts.
-      // - A progress indicator for bookings in progress.
-      // - A "Finished" message for bookings that have ended.
+      // ProgressBar component that displays a countdown, progress indicator, or finished state.
       const ProgressBar = ({ scheduledTime, finishTime }) => {
         const [currentTime, setCurrentTime] = useState(new Date());
   
@@ -160,11 +151,9 @@
           return () => clearInterval(timer);
         }, []);
   
-        // Ensure scheduledTime and finishTime are Date objects.
         const scheduled = scheduledTime instanceof Date ? scheduledTime : new Date(scheduledTime);
         const finish = finishTime instanceof Date ? finishTime : new Date(finishTime);
   
-        // If the booking is in the future, show a countdown until the booking starts.
         if (currentTime.getTime() < scheduled.getTime()) {
           const untilMs = scheduled.getTime() - currentTime.getTime();
           const untilMinutes = Math.floor(untilMs / 60000);
@@ -194,7 +183,6 @@
           );
         }
   
-        // If the booking has finished, display a finished message.
         if (currentTime.getTime() >= finish.getTime()) {
           return (
             <div style={{
@@ -214,7 +202,6 @@
           );
         }
   
-        // Booking is in progress; show a progress bar with countdown to finish.
         const elapsed = currentTime.getTime() - scheduled.getTime();
         const totalDuration = finish.getTime() - scheduled.getTime();
         let progressPercentage = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
@@ -254,20 +241,30 @@
           </div>
         );
       };
-  
-      // BookingCard displays the details of a booking along with the ProgressBar.
+      
+      // BookingCard displays booking_description (as header) and service name.
+      // Responsive font size for booking_description is computed, and the text is allowed to break into multiple lines.
       const BookingCard = ({ booking }) => {
-        const firstName = booking.customer_first_name?.trim() || "NIL";
-        const lastInitial = booking.customer_last_name?.trim() ? booking.customer_last_name.charAt(0) + '.' : "NIL";
-        const serviceName = booking.service_name?.trim() || "NIL";
         const bookingDescription = booking.booking_description?.trim() || "NIL";
+        const serviceName = booking.service_name?.trim() || "NIL";
+        
+        // Card Settings
+        const cardWidth = 250; // total card width in pixels
+        const cardPadding = 20 * 2; // left + right padding (20px each side)
+        const availableWidth = cardWidth - cardPadding; // available width for text
+  
+        // Estimate font size needed based on the bookingDescription length.
+        // Average character width is roughly 0.6 * fontSize.
+        // Computed fontSize = availableWidth / (bookingDescription.length * 0.6), clamped between 24 and 48.
+        const estimatedFontSize = availableWidth / (bookingDescription.length * 0.6);
+        const computedFontSize = Math.min(48, Math.max(24, estimatedFontSize));
   
         const cardStyle = {
           background: 'linear-gradient(45deg, #74ebd5, #acb6e5)',
           borderRadius: '12px',
           padding: '20px',
           margin: '20px',
-          width: '250px',
+          width: `${cardWidth}px`,
           fontSize: '22px',
           position: 'relative',
           boxShadow: 'inset 0 0 20px rgba(0, 0, 0, 0.9)',
@@ -278,14 +275,17 @@
   
         return (
           <div className="booking-card" style={cardStyle}>
-            <div style={{ fontWeight: 'bold', fontSize: '48px', marginBottom: '10px' }}>
-              {firstName} {lastInitial}
+            <div style={{ 
+              fontWeight: 'bold', 
+              marginBottom: '10px', 
+              color: 'black',
+              fontSize: `${computedFontSize}px`,
+              lineHeight: 1.2
+            }}>
+              {bookingDescription}
             </div>
             <div style={{ marginBottom: '10px' }}>
               {serviceName}
-            </div>
-            <div style={{ marginBottom: '10px' }}>
-              {bookingDescription}
             </div>
             {booking.scheduledTime && booking.finishTime && (
               <ProgressBar 
@@ -297,8 +297,7 @@
         );
       };
   
-      // ClientDisplay fetches bookings and categorizes them into Scheduled, In Progress, and Finished.
-      // It uses the local start time and booking_duration to compute the finish time.
+      // ClientDisplay fetches bookings and categorizes them.
       const ClientDisplay = () => {
         const [bookings, setBookings] = useState([]);
         const finishedContentRef = useRef(null);
@@ -310,7 +309,6 @@
               const processedBookings = data.map(booking => {
                 const now = new Date();
                 const scheduled = new Date(booking.booking_date_start_tz);
-                // Assume booking_duration field is in minutes.
                 const durationMs = parseInt(booking.booking_duration, 10) * 60000;
                 const finish = new Date(scheduled.getTime() + durationMs);
                 let countdown = 0;
@@ -319,14 +317,14 @@
                 }
                 return {
                   ...booking,
-                  scheduledTime: scheduled,  // keep as Date object
-                  finishTime: finish,         // calculated finish time
+                  scheduledTime: scheduled,
+                  finishTime: finish,
                   countdown,
                   totalTime: Math.floor(durationMs / 60000)
                 };
               });
   
-              // Group bookings by booking_hash_id and filter out any with Cancelled status.
+              // Group by booking_hash_id and filter out any with Cancelled status.
               const bookingsByHash = {};
               processedBookings.forEach(booking => {
                 const hash = booking.booking_hash_id;
@@ -342,7 +340,10 @@
                 if (group.some(b => b.booking_status === 'Cancelled')) {
                   return;
                 }
-                filteredBookings.push(...group);
+                const latestBooking = group.reduce((prev, curr) => {
+                  return new Date(curr.booking_created_at) > new Date(prev.booking_created_at) ? curr : prev;
+                }, group[0]);
+                filteredBookings.push(latestBooking);
               });
   
               setBookings(filteredBookings);
@@ -357,8 +358,6 @@
         }, []);
   
         const now = new Date();
-  
-        // Filter bookings using the preserved Date objects.
         const scheduledBookings = bookings.filter(booking => booking.scheduledTime.getTime() > now.getTime());
         const inProgressBookings = bookings.filter(booking => 
           now.getTime() >= booking.scheduledTime.getTime() && now.getTime() < booking.finishTime.getTime()
