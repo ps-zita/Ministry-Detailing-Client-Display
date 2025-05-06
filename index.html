@@ -63,7 +63,7 @@
         position: relative;
         box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.9);
         overflow: hidden;
-        border: 1px solid black;
+        border: 1px solid white;
         z-index: 1000;
       }
       /* Heading style */
@@ -72,22 +72,53 @@
         margin-bottom: 20px;
         color: white;
       }
-
-      /* Marquee container for finished bookings */
+      
+      /* Vertical marquee for finished bookings; applies only if there are at least 4 finished cards */
       .marquee-container {
         display: flex;
+        flex-direction: column;
         gap: 20px;
-        /* Duplicate the content to create a seamless scroll effect */
-        white-space: nowrap;
         animation: marquee 20s linear infinite;
       }
       @keyframes marquee {
         0% {
-          transform: translateX(100%);
+          transform: translateY(100%);
         }
         100% {
-          transform: translateX(-100%);
+          transform: translateY(-100%);
         }
+      }
+      /* Static container if less than 4 finished cards */
+      .marquee-container-static {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      /* Updated progress bar styles with amber hues for better contrast */
+      .progress-bar-container {
+        position: relative;
+        background: #eee;
+        border-radius: 4px;
+        width: 100%;
+        height: 30px;
+        margin-top: 10px;
+        overflow: hidden;
+      }
+      .progress-bar {
+        background: linear-gradient(90deg, #d4a373, #c78642);
+        border-radius: 4px;
+        height: 100%;
+      }
+      .progress-bar-text {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        text-align: center;
+        line-height: 30px;
+        font-size: 22px;
+        color: #333;
       }
       
       /* Mobile-specific styles (applied only on mobile aspect ratios) */
@@ -156,22 +187,21 @@
   <body>
     <div id="root"></div>
     <script type="text/babel">
-      const { useState, useEffect, useRef } = React;
+      const { useState, useEffect } = React;
       
       // ProgressBar component that displays a countdown, progress indicator, or finished state.
       const ProgressBar = ({ scheduledTime, finishTime }) => {
         const [currentTime, setCurrentTime] = useState(new Date());
   
         useEffect(() => {
-          const timer = setInterval(() => {
-            setCurrentTime(new Date());
-          }, 1000);
+          const timer = setInterval(() => setCurrentTime(new Date()), 1000);
           return () => clearInterval(timer);
         }, []);
   
         const scheduled = scheduledTime instanceof Date ? scheduledTime : new Date(scheduledTime);
         const finish = finishTime instanceof Date ? finishTime : new Date(finishTime);
   
+        // If current time is before scheduled, show countdown.
         if (currentTime.getTime() < scheduled.getTime()) {
           const untilMs = scheduled.getTime() - currentTime.getTime();
           const untilMinutes = Math.floor(untilMs / 60000);
@@ -201,6 +231,7 @@
           );
         }
   
+        // If finished, show finished state.
         if (currentTime.getTime() >= finish.getTime()) {
           return (
             <div style={{
@@ -220,6 +251,7 @@
           );
         }
   
+        // Otherwise, show progress.
         const elapsed = currentTime.getTime() - scheduled.getTime();
         const totalDuration = finish.getTime() - scheduled.getTime();
         let progressPercentage = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
@@ -230,66 +262,41 @@
         const remainingSeconds = ('0' + Math.floor((remainingMS % 60000) / 1000)).slice(-2);
   
         return (
-          <div style={{
-            background: '#eee',
-            borderRadius: '4px',
-            width: '100%',
-            height: '30px',
-            marginTop: '10px',
-            position: 'relative'
-          }}>
-            <div style={{
-              height: '100%',
-              width: `${progressPercentage}%`,
-              background: 'green',
-              borderRadius: '4px'
-            }} />
-            <div style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              textAlign: 'center',
-              lineHeight: '30px',
-              fontSize: '22px',
-              color: '#333'
-            }}>
+          <div className="progress-bar-container">
+            <div className="progress-bar" style={{ width: `${progressPercentage}%` }}></div>
+            <div className="progress-bar-text">
               ETA: {remainingMinutes}m {remainingSeconds}s
             </div>
           </div>
         );
       };
       
-      // BookingCard displays booking_description (as header) and service name.
-      // Responsive font size for booking_description is computed, and the text is allowed to break into multiple lines.
+      // BookingCard displays booking_description (as header), service name, and progress indicator.
       const BookingCard = ({ booking }) => {
         const bookingDescription = booking.booking_description?.trim() || "NIL";
         const serviceName = booking.service_name?.trim() || "NIL";
-        
+  
         // Card Settings
         const cardWidth = 250; // total card width in pixels
         const cardPadding = 20 * 2; // left + right padding (20px each side)
-        const availableWidth = cardWidth - cardPadding; // available width for text
   
-        // Estimate font size needed based on the bookingDescription length.
-        // Average character width is roughly 0.6 * fontSize.
-        // Computed fontSize = availableWidth / (bookingDescription.length * 0.6), clamped between 24 and 48.
-        const estimatedFontSize = availableWidth / (bookingDescription.length * 0.6);
+        // Estimate responsive font size for the booking description.
+        const estimatedFontSize = cardWidth / (bookingDescription.length * 0.6);
         const computedFontSize = Math.min(48, Math.max(24, estimatedFontSize));
   
         const cardStyle = {
-  background: 'linear-gradient(45deg, #624a2e, #4f2e1e)',
-  borderRadius: '12px',
-  padding: '20px',
-  margin: '20px',
-  width: `${cardWidth}px`,
-  fontSize: '22px',
-  position: 'relative',
-  boxShadow: 'inset 0 0 20px rgba(0, 0, 0, 0.9)',
-  overflow: 'hidden',
-  border: '1px solid white',
-  zIndex: 1000
-};
+          background: 'linear-gradient(45deg, #624a2e, #4f2e1e)',
+          borderRadius: '12px',
+          padding: '20px',
+          margin: '20px',
+          width: `${cardWidth}px`,
+          fontSize: '22px',
+          position: 'relative',
+          boxShadow: 'inset 0 0 20px rgba(0, 0, 0, 0.9)',
+          overflow: 'hidden',
+          border: '1px solid white',
+          zIndex: 1000
+        };
   
         return (
           <div className="booking-card" style={cardStyle}>
@@ -323,21 +330,15 @@
           fetch('https://silent-papers-unite.loca.lt/bookings')
             .then(response => response.json())
             .then((data) => {
+              const now = new Date();
               const processedBookings = data.map(booking => {
-                const now = new Date();
                 const scheduled = new Date(booking.booking_date_start_tz);
                 const durationMs = parseInt(booking.booking_duration, 10) * 60000;
                 const finish = new Date(scheduled.getTime() + durationMs);
-                let countdown = 0;
-                if (now.getTime() < finish.getTime()) {
-                  countdown = Math.floor((finish.getTime() - now.getTime()) / 60000);
-                }
                 return {
                   ...booking,
                   scheduledTime: scheduled,
-                  finishTime: finish,
-                  countdown,
-                  totalTime: Math.floor(durationMs / 60000)
+                  finishTime: finish
                 };
               });
   
@@ -357,9 +358,9 @@
                 if (group.some(b => b.booking_status === 'Cancelled')) {
                   return;
                 }
-                const latestBooking = group.reduce((prev, curr) => {
-                  return new Date(curr.booking_created_at) > new Date(prev.booking_created_at) ? curr : prev;
-                }, group[0]);
+                const latestBooking = group.reduce((prev, curr) =>
+                  new Date(curr.booking_created_at) > new Date(prev.booking_created_at) ? curr : prev
+                , group[0]);
                 filteredBookings.push(latestBooking);
               });
   
@@ -368,7 +369,7 @@
             .catch(error => console.error('Error fetching bookings:', error));
         };
   
-        // Fetch bookings on page refresh and then every minute (60000ms)
+        // Fetch bookings on page refresh and then every minute.
         useEffect(() => {
           fetchBookings();
           const interval = setInterval(fetchBookings, 60000);
@@ -382,12 +383,15 @@
         const inProgressBookings = bookings.filter(booking => 
           now.getTime() >= booking.scheduledTime.getTime() && now.getTime() < booking.finishTime.getTime()
         );
-        // Finished bookings: only include finished bookings that are within an hour after finish time.
+        // Finished bookings: only include finished bookings within an hour after finish time.
         const finishedBookings = bookings.filter(booking => {
           const finishedTime = booking.finishTime.getTime();
           const oneHourAfter = finishedTime + 3600000;
           return now.getTime() >= finishedTime && now.getTime() <= oneHourAfter;
         });
+  
+        // Determine which marquee container style to use.
+        const marqueeClass = finishedBookings.length >= 4 ? "marquee-container" : "marquee-container-static";
   
         return (
           <div className="dashboard-container">
@@ -409,14 +413,16 @@
             <div className="right-section">
               <h2 className="finished-heading heading">Finished Bookings</h2>
               {finishedBookings.length ? (
-                <div className="marquee-container">
+                <div className={marqueeClass}>
                   {finishedBookings.map(booking => (
                     <BookingCard key={booking.booking_hash_id} booking={booking} />
                   ))}
-                  {/* Duplicate the finished bookings list to ensure seamless marquee scroll */}
-                  {finishedBookings.map(booking => (
-                    <BookingCard key={booking.booking_hash_id + "_dup"} booking={booking} />
-                  ))}
+                  {/* Duplicate finished bookings for seamless marquee when using animation */}
+                  {finishedBookings.length >= 4 &&
+                    finishedBookings.map(booking => (
+                      <BookingCard key={booking.booking_hash_id + "_dup"} booking={booking} />
+                    ))
+                  }
                 </div>
               ) : (
                 <p className="no-finished-text" style={{ color: 'white', fontSize: '24px' }}>
