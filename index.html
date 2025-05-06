@@ -63,7 +63,8 @@
         position: relative;
         box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.9);
         overflow: hidden;
-        border: 1px solid white;
+        /* Change border color to match the progress bar's primary color (#d4a373) */
+        border: 1px solid #d4a373;
         z-index: 1000;
       }
       /* Heading style */
@@ -294,7 +295,7 @@
           position: 'relative',
           boxShadow: 'inset 0 0 20px rgba(0, 0, 0, 0.9)',
           overflow: 'hidden',
-          border: '1px solid white',
+          border: '1px solid #d4a373',
           zIndex: 1000
         };
   
@@ -390,7 +391,7 @@
           return now.getTime() >= finishedTime && now.getTime() <= oneHourAfter;
         });
   
-        // Determine which marquee container style to use.
+        // Determine marquee container style (vertical marquee if 4 or more finished cards).
         const marqueeClass = finishedBookings.length >= 4 ? "marquee-container" : "marquee-container-static";
   
         return (
@@ -417,7 +418,7 @@
                   {finishedBookings.map(booking => (
                     <BookingCard key={booking.booking_hash_id} booking={booking} />
                   ))}
-                  {/* Duplicate finished bookings for seamless marquee when using animation */}
+                  {/* Duplicate finished bookings for seamless marquee when animation is active */}
                   {finishedBookings.length >= 4 &&
                     finishedBookings.map(booking => (
                       <BookingCard key={booking.booking_hash_id + "_dup"} booking={booking} />
