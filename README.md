@@ -1,12 +1,17 @@
 # Ministry Detailing Client Display
 
-This project provides a simple API server to manage booking data using a JSON file as storage. It supports receiving and storing booking requests via webhooks and exposing the current bookings via an HTTP GET endpoint. This project is licensed under a noncommercial license.
+This project is created for **Ministry of Detailing** to enhance the client experience by providing a real-time booking display system and a simple API server to manage booking data. The system is designed to run on a monitor at the front of the store, allowing clients to view the progress of their bookings in real-time. It also includes an API server that uses a JSON file for storage, enabling easy integration with webhooks and other systems to manage booking data.
+
+The dashboard shows scheduled, in-progress, and recently finished bookings, letting clients easily track their appointments. Meanwhile, the API server handles incoming webhook data for storage and provides an endpoint to serve the current list of bookings to the client display.
 
 ## License
 
 This project is licensed for noncommercial use only. See [LICENSE](LICENSE.md) for details.
 
 ## Project Overview
+
+- **Purpose:**  
+  To provide a live client display system for **Ministry of Detailing** that shows booking information on a monitor at the storefront while also offering a simple API server to manage booking data.
 
 - **Server Implementation:**  
   The server is implemented using Node.js with the Express framework. It listens on port 3001 and handles two endpoints:
@@ -32,7 +37,7 @@ This project is licensed for noncommercial use only. See [LICENSE](LICENSE.md) f
 
    ```bash
    git clone https://github.com/ps-zita/Ministry-Detailing-Client-Display.git
-   cd your-repo-name
+   cd Ministry-Detailing-Client-Display
    ```
 
 2. **Install Dependencies:**
@@ -55,7 +60,7 @@ This project is licensed for noncommercial use only. See [LICENSE](LICENSE.md) f
 
 1. **Tunnel Your Local Server:**
 
-   Use Localtunnel to expose the server running on port 3001. Replace `<subdomain>` with your preferred subdomain if required. If prompted, enter your password on the client side device.
+   Use Localtunnel to expose the server running on port 3001. Replace `<subdomain>` with your preferred subdomain if required. If prompted, enter your password on the client-side device.
 
    ```bash
    npx localtunnel --port 3001 --subdomain your-custom-subdomain
@@ -89,7 +94,7 @@ This project is licensed for noncommercial use only. See [LICENSE](LICENSE.md) f
 
 - **Authentication:**
 
-  If your localtunnel service requests a password on the client side device, make sure to provide the required password for authentication.
+  If your localtunnel service requests a password on the client-side device, make sure to provide the required password for authentication.
 
 ## Project Structure
 
@@ -127,6 +132,6 @@ This project and its code are provided for noncommercial, educational, and perso
 
 ## Conclusion
 
-This project serves as a basic template for an API server that collects webhook data, stores it locally, and serves it via an endpoint. Customize it to fit your specific requirements and integrate it with your CRM or webhook provider.
+This project serves as a basic template for an API server that collects webhook data, stores it locally, and serves it via an endpoint. It powers a client display system that provides a seamless and transparent booking experience for **Ministry of Detailing** clients. 
 
-Happy coding!
+Customize it to fit your specific requirements and integrate it with your CRM or webhook provider.
