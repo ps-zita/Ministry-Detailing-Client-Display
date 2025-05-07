@@ -60,7 +60,7 @@ This project is licensed for noncommercial use only. See [LICENSE](LICENSE.md) f
 
 1. **Tunnel Your Local Server:**
 
-   Use Localtunnel to expose the server running on port 3001. Replace `<subdomain>` with your preferred subdomain if required. If prompted, enter your password on the client-side device.
+   Run **monitor_localtunnel.sh** or use Localtunnel to expose the server running on port 3001. Replace `<subdomain>` with your preferred subdomain if required. If prompted, enter your password on the client-side device.
 
    ```bash
    npx localtunnel --port 3001 --subdomain your-custom-subdomain
@@ -68,7 +68,7 @@ This project is licensed for noncommercial use only. See [LICENSE](LICENSE.md) f
 
    This command will create a public URL (for example, `https://your-custom-subdomain.loca.lt`) that tunnels to your local server.
 
-2. **Update the Client-Side HTML:**
+3. **Update the Client-Side HTML:**
 
    In your client-side HTML file, update the API URL to the Localtunnel link. For example, change the fetch URL from:
 
@@ -99,9 +99,10 @@ This project is licensed for noncommercial use only. See [LICENSE](LICENSE.md) f
 ## Project Structure
 
 ```
-├── server.js          # The main API server file handling webhook and bookings endpoints
-├── bookings.json      # JSON file storing booking data (created automatically if it doesn't exist)
-└── README.md          # This documentation file
+├── server.js                   # The main API server file handling webhook and bookings endpoints
+├── bookings.json               # JSON file storing booking data (created automatically if it doesn't exist)
+├── monitor_localtunnel.sh      # Tunnels port 3001 for recieving webhooks
+└── README.md                   # This documentation file
 ```
 
 ## Customization
