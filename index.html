@@ -2,247 +2,449 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>ziad!</title>
+    <!-- Use responsive viewport -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="style.css" />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Special+Gothic+Expanded+One&display=swap"
-    />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Special+Gothic+Condensed+One&display=swap"
-    />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
-    />
+    <title>Bookings Dashboard</title>
+    <!-- 
+      All CSS is contained here in the <style> tag.
+      Replace or modify styles as needed.
+      For production, consider moving CSS to an external stylesheet.
+    -->
+    <style>
+      /* Global styles for the page and body */
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        font-family: Arial, sans-serif;
+        overflow: hidden;
+        background: linear-gradient(90deg, #0f0c29, #302b63, #24243e);
+      }
+      #root {
+        min-height: 100%;
+      }
+      /* Main container holding left and right sections */
+      .dashboard-container {
+        display: flex;
+        min-height: 100vh;
+        position: relative;
+      }
+      /* Left section styles: scheduled/in-progress bookings */
+      .left-section {
+        flex: 4;
+        padding: 20px;
+        overflow-y: auto;
+        position: relative;
+        z-index: 1000;
+      }
+      /* Right section styles: finished bookings */
+      .right-section {
+        flex: 1;
+        padding: 20px;
+        border-left: 2px solid white;
+        position: relative;
+        z-index: 1000;
+      }
+      /* Centered logo in the background */
+      .dashboard-logo {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 50%;
+        height: auto;
+        z-index: 900;
+        opacity: 0.1;
+      }
+      /* Styling for each booking card */
+      .booking-card {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;  /* Ensures progress bar stays at the bottom */
+        background: linear-gradient(45deg, #624a2e, #4f2e1e);
+        border-radius: 12px;
+        padding: 20px;
+        margin: 20px;
+        width: 250px;
+        font-size: 22px;
+        position: relative;
+        box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.9);
+        overflow: hidden;
+        border: 1px solid #d4a373;
+        z-index: 1000;
+      }
+      /* Container for booking text/details */
+      .booking-details {
+        margin-bottom: 10px;
+      }
+      /* Booking title styling */
+      .booking-title {
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: black;
+        line-height: 1.2;
+        white-space: nowrap;         /* Forces the title to appear on one line */
+        overflow: hidden;            /* Hide overflowed text */
+        text-overflow: ellipsis;     /* Display ellipsis if text overflows */
+      }
+      /* Booking service text styling */
+      .booking-service {
+        margin-bottom: 10px;
+        color: black;  /* Set service text color to black */
+      }
+      /* General heading styles */
+      .heading {
+        font-size: 28px;
+        margin-bottom: 20px;
+        color: white;
+      }
+      /* Grid for scheduled/in-progress bookings */
+      .booking-grid {
+        display: flex;
+        flex-wrap: wrap;
+      }
+      /* Style when no bookings available */
+      .no-bookings {
+        color: white;
+        font-size: 24px;
+      }
+      /* Progress bar container; margin-top: auto pushes it to the bottom */
+      .progress-bar-container {
+        position: relative;
+        background: #eee;
+        border-radius: 4px;
+        width: 100%;
+        height: 30px;
+        margin-top: auto;
+        overflow: hidden;
+      }
+      /* Filled part of the progress bar */
+      .progress-bar {
+        background: linear-gradient(90deg, #d4a373, #c78642);
+        border-radius: 4px;
+        height: 100%;
+        transition: width 1s linear;
+      }
+      /* Text overlay on the progress bar */
+      .progress-bar-text {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        text-align: center;
+        line-height: 30px;
+        font-size: 22px;
+        color: #333;
+      }
+      /* Styling for bookings that haven't started yet */
+      .progress-upcoming {
+        background: #eee;
+        border-radius: 4px;
+        width: 100%;
+        height: 40px;
+        margin-top: auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #888;
+        font-size: 16px;
+      }
+      /* Styling for finished bookings */
+      .progress-finished {
+        background: #ccc;
+        border-radius: 4px;
+        width: 100%;
+        height: 30px;
+        margin-top: auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #333;
+        font-size: 22px;
+      }
+      /* Marquee effect for finished bookings if there are enough bookings */
+      .marquee-wrapper {
+        height: calc(100vh - 80px);
+        overflow: hidden;
+        position: relative;
+      }
+      .marquee-container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        animation: marquee 10s linear infinite;
+      }
+      @keyframes marquee {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(-50%); }
+      }
+      .marquee-container-static {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      /* Responsive styles for mobile devices */
+      @media only screen and (max-width: 768px) {
+        .dashboard-container {
+          flex-direction: column;
+          overflow: auto;
+          min-height: auto;
+        }
+        #root {
+          height: 140%;
+        }
+        .dashboard-logo {
+          position: static;
+          transform: none;
+          width: 80%;
+          margin: 20px auto;
+          display: block;
+        }
+        .booking-card {
+          width: 70vw;
+          margin: 10px auto;
+        }
+        .left-section,
+        .right-section {
+          border: none;
+          width: 100%;
+          padding: 0;
+        }
+        .left-section {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          align-items: flex-start;
+        }
+        .right-section {
+          display: contents;
+        }
+        .progress-heading,
+        .finished-heading,
+        .no-bookings {
+          display: none;
+        }
+      }
+    </style>
+    <!-- Include React and ReactDOM from CDN -->
+    <script crossorigin src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <!-- Include Babel for JSX transformation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   </head>
   <body>
-    <div id="cursor-light"></div>
-    <div id="main-content">
-      <div id="left-panel">
-        <h1>Ziad Taha</h1>
-        <h3>uzbeki-egyptian web developer based in melbourne</h3>
-        <p>i make websites &amp; romhacks &amp; tools n stuff idk</p>
-        <div id="left-nav">
-          <a href="#about-me">
-            <span class="nav-line"></span>
-            <span class="nav-text">ABOUT</span>
-          </a>
-          <a href="#cards-container">
-            <span class="nav-line"></span>
-            <span class="nav-text">WORK</span>
-          </a>
-          <a href="#commitments">
-            <span class="nav-line"></span>
-            <span class="nav-text">COMMITMENTS</span>
-          </a>
-        </div>
-      </div>
-      <div id="right-panel">
-        <div id="about-me">
-          <p>
-            <span id="greeting-container"></span>
-             I'm a 
-            <strike>
-              <span class="scribble-container">
-                unemployed
-                <span class="scribble"></span>
-              </span>
-            </strike>
-            &nbsp;&nbsp;SELF EMPLOYED web developer &amp; tech tinkerer, I'm currently
-            studying cyber security in TAFE (Australian trade school) and I'm using that as a pathway
-            into university, anticipating a start in Computer Science at UniMelb next semester.
-          </p>
-          <p>
-            Right now I'm currently working on a 
-            <a href="https://github.com/ps-zita/2i-combotrials" class="highlight-cyan">mod of Street Fighter 3: Second Impact</a>
-            that implements combo trials, tools to make your own mod/romhack of any fighting game supported on the FBNeo emulator, so all Neo Geo games, CPS1, CPS2, CPS3 games, etc,
-            and resources &amp; documentation on how Lua works in FBNeo &amp; FightCade. In the past I've
-            <a href="https://www.linkedin.com/in/ztaha/" class="highlight-cyan">worked with</a>
-            companies like CompNow and a bunch of phone repair stores for brief periods of time.
-          </p>
-          <p>
-            If I'm not working on a project, you can find me watching a good film, playing a Megaten, Yakuza or Metal Gear game or spending time with
-            my cat, <span class="jiji">Jiji</span>.
-          </p>
-        </div>
-        <div id="cards-container">
-          <div class="card" id="card-iframe">
-            <div class="card-date">February 2025</div>
-            <div class="card-content">
-              <div class="card-text">
-                <h3>sirius black cafe</h3>
-                <p>
-                  Sirius Black Cafe's website was designed to reflect the cafe’s fusion of eclectic charm and modern sophistication. The site’s aesthetic balances clean, minimalist elements with inviting warmth, creating a digital experience that feels both curated and welcoming. Thoughtful typography enhances the visual identity, complementing the thematic storytelling and cultural fusion that define the cafe’s brand while ensuring seamless navigation and engagement.
-                </p>
+    <!-- Root container for our React app -->
+    <div id="root"></div>
+    <!-- All JavaScript code is contained here -->
+    <script type="text/babel">
+      // Destructure React features from the React library
+      const { useState, useEffect } = React;
+      
+      // ProgressBar component displays booking progress:
+      // - It shows a countdown if the booking hasn't started.
+      // - Displays a progress bar during the booking.
+      // - Shows "Finished" if the booking time is over.
+      const ProgressBar = ({ scheduledTime, finishTime }) => {
+        const [currentTime, setCurrentTime] = useState(new Date());
+        useEffect(() => {
+          const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+          return () => clearInterval(timer);
+        }, []);
+  
+        // Ensure times are JavaScript Date objects.
+        const scheduled = scheduledTime instanceof Date ? scheduledTime : new Date(scheduledTime);
+        const finish = finishTime instanceof Date ? finishTime : new Date(finishTime);
+  
+        // Booking hasn't started; show countdown.
+        if (currentTime.getTime() < scheduled.getTime()) {
+          const untilMs = scheduled.getTime() - currentTime.getTime();
+          const untilMinutes = Math.floor(untilMs / 60000);
+          const untilSeconds = ('0' + Math.floor((untilMs % 60000) / 1000)).slice(-2);
+          return (
+            <div className="progress-upcoming">
+              <div>Booking starts at {scheduled.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+              <div>Starts in: {untilMinutes}m {untilSeconds}s</div>
+            </div>
+          );
+        }
+        
+        // Booking finished; show finished message.
+        if (currentTime.getTime() >= finish.getTime()) {
+          return (
+            <div className="progress-finished">
+              Finished
+            </div>
+          );
+        }
+        
+        // Booking is in progress; calculate progress percentage.
+        const elapsed = currentTime.getTime() - scheduled.getTime();
+        const totalDuration = finish.getTime() - scheduled.getTime();
+        let progressPercentage = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
+        progressPercentage = Math.min(Math.max(progressPercentage, 0), 100);
+        const remainingMS = finish.getTime() - currentTime.getTime();
+        const remainingMinutes = Math.floor(remainingMS / 60000);
+        const remainingSeconds = ('0' + Math.floor((remainingMS % 60000) / 1000)).slice(-2);
+  
+        return (
+          <div className="progress-bar-container">
+            <div className="progress-bar" style={{ width: `${progressPercentage}%` }} />
+            <div className="progress-bar-text">
+              ETA: {remainingMinutes}m {remainingSeconds}s
+            </div>
+          </div>
+        );
+      };
+      
+      // BookingCard displays individual booking details along with the progress bar.
+      // Notes:
+      // - Adjust the React component properties as needed.
+      // - Replace the "booking" object properties if your data has a different structure.
+      // - The card width is fixed at 250px with 20px padding on each side.
+      //   Thus the available width for title text is 210px.
+      const BookingCard = ({ booking }) => {
+        const bookingDescription = booking.booking_description?.replace(/\n/g, ' ')?.trim() || "NIL";
+        const serviceName = booking.service_name?.trim() || "NIL";
+        // Card properties
+        const cardWidth = 250;
+        const cardPadding = 20;
+        const availableWidth = cardWidth - cardPadding * 2; // account for left/right padding
+        // Dynamically determine font size based on available width and text length.
+        const computedFontSize = Math.min(48, Math.max(24, availableWidth / (bookingDescription.length * 0.6)));
+        return (
+          <div className="booking-card">
+            <div className="booking-details">
+              <div 
+                className="booking-title" 
+                style={{ fontSize: `${computedFontSize}px` }}
+              >
+                {bookingDescription}
               </div>
-              <div class="tags">
-                <svg class="tag" viewBox="0 0 100 35" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="100" height="35" rx="15" ry="15"></rect>
-                  <text x="50%" y="50%">HTML</text>
-                </svg>
-                <svg class="tag" viewBox="0 0 100 35" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="100" height="33" rx="15" ry="15"></rect>
-                  <text x="50%" y="50%">CSS</text>
-                </svg>
-                <svg class="tag" viewBox="0 0 100 35" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="100" height="30" rx="15" ry="15"></rect>
-                  <text x="50%" y="50%">JS</text>
-                </svg>
+              <div className="booking-service">
+                {serviceName}
+              </div>
+            </div>
+            {booking.scheduledTime && booking.finishTime && (
+              <ProgressBar 
+                scheduledTime={booking.scheduledTime}
+                finishTime={booking.finishTime}
+              />
+            )}
+          </div>
+        );
+      };
+      
+      // ClientDisplay handles fetching booking data, processing it, and categorizing bookings.
+      // Notes:
+      // - Replace the fetch URL ("https://silent-papers-unite.loca.lt/bookings") with your own server endpoint URL.
+      // - The code filters out cancelled bookings and chooses the latest booking by unique booking hash.
+      const ClientDisplay = () => {
+        const [bookings, setBookings] = useState([]);
+  
+        const fetchBookings = () => {
+          // Replace this URL with your server endpoint that returns JSON booking data.
+          fetch('https://silent-papers-unite.loca.lt/bookings')
+            .then(response => response.json())
+            .then(data => {
+              const processedBookings = data.map(booking => {
+                const scheduled = new Date(booking.booking_date_start_tz);
+                const durationMs = parseInt(booking.booking_duration, 10) * 60000;
+                const finish = new Date(scheduled.getTime() + durationMs);
+                return { ...booking, scheduledTime: scheduled, finishTime: finish };
+              });
+  
+              // Group bookings by their unique hash id.
+              const bookingsByHash = {};
+              processedBookings.forEach(booking => {
+                const hash = booking.booking_hash_id;
+                if (!bookingsByHash[hash]) bookingsByHash[hash] = [];
+                bookingsByHash[hash].push(booking);
+              });
+  
+              // Exclude cancelled bookings and pick the most recent booking per group.
+              const filteredBookings = [];
+              Object.keys(bookingsByHash).forEach(hash => {
+                const group = bookingsByHash[hash];
+                if (group.some(b => b.booking_status === 'Cancelled')) return;
+                const latestBooking = group.reduce((prev, curr) =>
+                  new Date(curr.booking_created_at) > new Date(prev.booking_created_at) ? curr : prev
+                , group[0]);
+                filteredBookings.push(latestBooking);
+              });
+  
+              setBookings(filteredBookings);
+            })
+            .catch(error => console.error('Error fetching bookings:', error));
+        };
+        
+        // Initial fetch and subsequent updates every minute.
+        useEffect(() => {
+          fetchBookings();
+          const interval = setInterval(fetchBookings, 60000);
+          return () => clearInterval(interval);
+        }, []);
+        
+        const now = new Date();
+        // Filter bookings into scheduled (future), in-progress (ongoing), and finished (recently finished) categories.
+        const scheduledBookings = bookings.filter(booking => booking.scheduledTime.getTime() > now.getTime());
+        const inProgressBookings = bookings.filter(booking =>
+          now.getTime() >= booking.scheduledTime.getTime() && now.getTime() < booking.finishTime.getTime()
+        );
+        // Finished bookings are now shown if done within the last 4 hours.
+        const finishedBookings = bookings.filter(booking => {
+          const finishedTime = booking.finishTime.getTime();
+          const fourHoursAfter = finishedTime + 14400000; // 4 hours in milliseconds
+          return now.getTime() >= finishedTime && now.getTime() <= fourHoursAfter;
+        });
+  
+        // If 4 or more finished bookings exist, use a marquee animated effect.
+        const useMarquee = finishedBookings.length >= 4;
+  
+        return (
+          <div className="dashboard-container">
+            <img src="https://files.catbox.moe/4y7toq.png" alt="Logo" className="dashboard-logo" />
+            <div className="left-section">
+              <h2 className="progress-heading heading">Scheduled &amp; In Progress Bookings</h2>
+              <div className="booking-grid">
+                {scheduledBookings.length === 0 && inProgressBookings.length === 0 ? (
+                  <p className="no-bookings">
+                    No upcoming or active bookings available
+                  </p>
+                ) : (
+                  [...scheduledBookings, ...inProgressBookings].map(booking => (
+                    <BookingCard key={booking.booking_hash_id} booking={booking} />
+                  ))
+                )}
+              </div>
+            </div>
+            <div className="right-section">
+              <h2 className="finished-heading heading">Finished Bookings</h2>
+              <div className="marquee-wrapper">
+                {useMarquee ? (
+                  <div className="marquee-container">
+                    {finishedBookings.map(booking => (
+                      <BookingCard key={booking.booking_hash_id} booking={booking} />
+                    ))}
+                    {finishedBookings.map(booking => (
+                      <BookingCard key={booking.booking_hash_id + "_dup"} booking={booking} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="marquee-container-static">
+                    {finishedBookings.map(booking => (
+                      <BookingCard key={booking.booking_hash_id} booking={booking} />
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
-          <div class="card" id="card-aidin">
-            <div class="card-date">April 2025</div>
-            <div class="card-content">
-              <div class="card-text">
-                <h3>aidin murtha voice actor</h3>
-                <p>
-                  <strong>client testimonial</strong><br />
-                  Ziad's work is exceptional - he delivered exactly what I hoped for in a timely fashion and was affable and agreeable throughout the whole process. I cannot recommend him enthusiastically enough!
-                </p>
-              </div>
-              <div class="tags">
-                <svg class="tag" viewBox="0 0 100 35" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="100" height="35" rx="15" ry="15"></rect>
-                  <text x="50%" y="50%">HTML</text>
-                </svg>
-                <svg class="tag" viewBox="0 0 100 35" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="100" height="35" rx="15" ry="15"></rect>
-                  <text x="50%" y="50%">CSS</text>
-                </svg>
-                <svg class="tag" viewBox="0 0 100 35" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="100" height="35" rx="15" ry="15"></rect>
-                  <text x="50%" y="50%">JS</text>
-                </svg>
-              </div>
-            </div>
-          </div>
-          <div class="card" id="card-romhack">
-            <div class="card-date">March 2025 - <br />Present</div>
-            <div class="card-content">
-              <div class="card-text">
-                <h3>Street Fighter 3: 2nd Impact Mod</h3>
-                <p>Mod to add combo trials to SF3:2I, easy to use and really fun to mess around with :)</p>
-              </div>
-              <div class="tags">
-                <svg class="tag" viewBox="0 0 100 35" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="100" height="35" rx="15" ry="15"></rect>
-                  <text x="50%" y="50%">LUA</text>
-                </svg>
-              </div>
-            </div>
-          </div>
-          <div class="card" id="card-io">
-            <div class="card-date">November 2024</div>
-            <div class="card-content">
-              <div class="card-text">
-                <h3>IOLabs Inventory Management System</h3>
-                <p>
-                  Inventory management system I threw together really fast when a prior employer asked for an alternative to the very unorganized excel spreadsheet he was using. Features include importing &amp; exporting excel files which was very useful, the guy never paid me my wages or anything I was owed for working on his website and broke and stole my shit but that's a whole thing lol
-                </p>
-              </div>
-              <div class="tags">
-                <svg class="tag" viewBox="0 0 100 35" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="100" height="35" rx="15" ry="15"></rect>
-                  <text x="50%" y="50%">HTML</text>
-                </svg>
-                <svg class="tag" viewBox="0 0 100 35" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="100" height="35" rx="15" ry="15"></rect>
-                  <text x="50%" y="50%">CSS</text>
-                </svg>
-                <svg class="tag" viewBox="0 0 100 35" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="100" height="35" rx="15" ry="15"></rect>
-                  <text x="50%" y="50%">JS</text>
-                </svg>
-              </div>
-            </div>
-          </div>
-          <div class="card" id="card-project">
-            <div class="card-date">May 2025</div>
-            <div class="card-content">
-              <div class="card-text">
-                <h3>Ministry Detailing Client Display</h3>
-                <p>
-                  This project provides a real-time client display system for Ministry of Detailing.
-                  It shows active and upcoming booking progress on a storefront monitor.
-                  It comes with a simple Node.js API server using JSON file storage and integrates with webhooks.
-                </p>
-              </div>
-              <div class="tags">
-                <svg class="tag" viewBox="0 0 100 35" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="100" height="35" rx="15" ry="15"></rect>
-                  <text x="50%" y="50%">Node</text>
-                </svg>
-                <svg class="tag" viewBox="0 0 100 35" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="100" height="35" rx="15" ry="15"></rect>
-                  <text x="50%" y="50%">HTML</text>
-                </svg>
-                <svg class="tag" viewBox="0 0 100 35" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="100" height="35" rx="15" ry="15"></rect>
-                  <text x="50%" y="50%">React</text>
-                </svg>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div id="commitments">
-          <p>
-            %25 of every website commission sale goes towards charities helping displaced families in Gaza &amp; the occupied West Bank, including recurring charges for hosting &amp; SEO. So far a total of
-            <a class="highlight-cyan" href="#">$40</a>
-            has been donated to the <a href="https://matwproject.org/crisis-and-emergencies/palestine" class="highlight-cyan">MATW Project</a>.
-            <br /><br />
-            If you need any minor changes made to your site, you can contact me and I will update it free of charge.
-            <br /><br />
-            z1ad.taha@hotmail.com | 0476 990 206
-          </p>
-        </div>
-      </div>
-    </div>
-    <div id="bottom-icons">
-      <a href="https://github.com/ps-zita" target="_blank">
-        <img class="icon" src="assets/logo.png" alt="Logo" />
-      </a>
-      <a href="https://www.linkedin.com/in/ztaha/" target="_blank">
-        <img class="icon" src="assets/linkedin.png" alt="LinkedIn" />
-      </a>
-    </div>
-    <div id="iframe-modal">
-      <div class="mobile-container">
-        <iframe id="modal-iframe" src="https://www.siriusblack.cafe/" title="Mobile Content"></iframe>
-        <img src="assets/iphone.png" alt="iPhone Frame" class="overlay" />
-      </div>
-    </div>
-    <div id="aidin-modal">
-      <div class="aidin-container">
-        <iframe id="aidin-iframe" src="https://ps-zita.github.io/aidinportfolio/" title="Aidin Portfolio"></iframe>
-        <img src="assets/studio.png" alt="Studio Frame" class="overlay" />
-      </div>
-    </div>
-    <div id="io-modal">
-      <div class="io-container">
-        <iframe id="io-iframe" src="https://ps-zita.github.io/iolabsinventory/" title="IOLabs Inventory"></iframe>
-        <img src="assets/studio.png" alt="Studio Frame" class="overlay" />
-      </div>
-    </div>
-    <div id="imac-modal">
-      <div class="imac-modal-container">
-        <div class="imac-display">
-          <video class="imac-video" src="assets/2ivid.mp4" autoplay loop muted playsinline></video>
-          <img class="imac-img" src="assets/imac.png" alt="iMac" />
-        </div>
-      </div>
-    </div>
-    <footer class="mobile-footer">
-      <a href="https://github.com/ps-zita" target="_blank">
-        <img src="assets/logo.png" alt="GitHub Logo" />
-      </a>
-      <a href="https://www.linkedin.com/in/ztaha/" target="_blank">
-        <img src="assets/linkedin.png" alt="LinkedIn Logo" />
-      </a>
-    </footer>
-    <script src="script.js"></script>
+        );
+      };
+      
+      // Render the ClientDisplay component into the #root element.
+      ReactDOM.render(<ClientDisplay />, document.getElementById('root'));
+    </script>
   </body>
 </html>
