@@ -81,7 +81,7 @@ This project is licensed for noncommercial use only. See [LICENSE](LICENSE) for 
 
 - **Webhook Endpoint:**
 
-  Use your EasyWeek CRM webhook setup to point to the Localtunnel URL with the `/webhook` path. For example:
+  Use your CRM webhook setup to point to the Localtunnel URL with the `/webhook` path. For example:
 
   ```
   https://your-custom-subdomain.loca.lt/webhook
