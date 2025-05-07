@@ -2,12 +2,17 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!-- Use responsive viewport -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Bookings Dashboard</title>
+    <!-- 
+      All CSS is contained here in the <style> tag.
+      Replace or modify styles as needed.
+      For production, consider moving CSS to an external stylesheet.
+    -->
     <style>
-      /* Global styles */
-      html,
-      body {
+      /* Global styles for the page and body */
+      html, body {
         margin: 0;
         padding: 0;
         height: 100%;
@@ -15,18 +20,16 @@
         overflow: hidden;
         background: linear-gradient(90deg, #0f0c29, #302b63, #24243e);
       }
-      
       #root {
         min-height: 100%;
       }
-      
-      /* Dashboard container splits into left (for scheduled/in progress) and right (for finished) */
+      /* Main container holding left and right sections */
       .dashboard-container {
         display: flex;
         min-height: 100vh;
         position: relative;
       }
-      
+      /* Left section styles: scheduled/in-progress bookings */
       .left-section {
         flex: 4;
         padding: 20px;
@@ -34,7 +37,7 @@
         position: relative;
         z-index: 1000;
       }
-      
+      /* Right section styles: finished bookings */
       .right-section {
         flex: 1;
         padding: 20px;
@@ -42,8 +45,7 @@
         position: relative;
         z-index: 1000;
       }
-      
-      /* Logo placed fixed at the center */
+      /* Centered logo in the background */
       .dashboard-logo {
         position: fixed;
         top: 50%;
@@ -54,9 +56,11 @@
         z-index: 900;
         opacity: 0.1;
       }
-      
-      /* Booking card styles */
+      /* Styling for each booking card */
       .booking-card {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;  /* Ensures progress bar stays at the bottom */
         background: linear-gradient(45deg, #624a2e, #4f2e1e);
         border-radius: 12px;
         padding: 20px;
@@ -69,63 +73,59 @@
         border: 1px solid #d4a373;
         z-index: 1000;
       }
-      
+      /* Container for booking text/details */
+      .booking-details {
+        margin-bottom: 10px;
+      }
+      /* Booking title styling */
+      .booking-title {
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: black;
+        line-height: 1.2;
+        white-space: nowrap;         /* Forces the title to appear on one line */
+        overflow: hidden;            /* Hide overflowed text */
+        text-overflow: ellipsis;     /* Display ellipsis if text overflows */
+      }
+      /* Booking service text styling */
+      .booking-service {
+        margin-bottom: 10px;
+        color: black;  /* Set service text color to black */
+      }
+      /* General heading styles */
       .heading {
         font-size: 28px;
         margin-bottom: 20px;
         color: white;
       }
-      
-      /* Marquee styles */
-      /* The wrapper spans from just below the Finished Bookings heading to the bottom of the viewport */
-      .marquee-wrapper {
-        height: calc(100vh - 80px);
-        overflow: hidden;
-        position: relative;
-      }
-      
-      /* Infinite vertical marquee for finished bookings;
-         We reduce the animation duration to 30s (twice as fast as 60s) */
-      .marquee-container {
+      /* Grid for scheduled/in-progress bookings */
+      .booking-grid {
         display: flex;
-        flex-direction: column;
-        gap: 20px;
-        animation: marquee 10s linear infinite;
+        flex-wrap: wrap;
       }
-      
-      @keyframes marquee {
-        0% {
-          transform: translateY(0);
-        }
-        100% {
-          transform: translateY(-50%);
-        }
+      /* Style when no bookings available */
+      .no-bookings {
+        color: white;
+        font-size: 24px;
       }
-      
-      /* Static container if fewer than 4 finished cards */
-      .marquee-container-static {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-      }
-      
-      /* Progress bar styles */
+      /* Progress bar container; margin-top: auto pushes it to the bottom */
       .progress-bar-container {
         position: relative;
         background: #eee;
         border-radius: 4px;
         width: 100%;
         height: 30px;
-        margin-top: 10px;
+        margin-top: auto;
         overflow: hidden;
       }
-      
+      /* Filled part of the progress bar */
       .progress-bar {
         background: linear-gradient(90deg, #d4a373, #c78642);
         border-radius: 4px;
         height: 100%;
+        transition: width 1s linear;
       }
-      
+      /* Text overlay on the progress bar */
       .progress-bar-text {
         position: absolute;
         top: 0;
@@ -136,19 +136,64 @@
         font-size: 22px;
         color: #333;
       }
-      
-      /* Mobile-specific styles */
+      /* Styling for bookings that haven't started yet */
+      .progress-upcoming {
+        background: #eee;
+        border-radius: 4px;
+        width: 100%;
+        height: 40px;
+        margin-top: auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #888;
+        font-size: 16px;
+      }
+      /* Styling for finished bookings */
+      .progress-finished {
+        background: #ccc;
+        border-radius: 4px;
+        width: 100%;
+        height: 30px;
+        margin-top: auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #333;
+        font-size: 22px;
+      }
+      /* Marquee effect for finished bookings if there are enough bookings */
+      .marquee-wrapper {
+        height: calc(100vh - 80px);
+        overflow: hidden;
+        position: relative;
+      }
+      .marquee-container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        animation: marquee 10s linear infinite;
+      }
+      @keyframes marquee {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(-50%); }
+      }
+      .marquee-container-static {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      /* Responsive styles for mobile devices */
       @media only screen and (max-width: 768px) {
         .dashboard-container {
           flex-direction: column;
           overflow: auto;
           min-height: auto;
         }
-        
         #root {
           height: 140%;
         }
-        
         .dashboard-logo {
           position: static;
           transform: none;
@@ -156,34 +201,28 @@
           margin: 20px auto;
           display: block;
         }
-        
         .booking-card {
           width: 70vw;
           margin: 10px auto;
-          display: block;
         }
-        
         .left-section,
         .right-section {
           border: none;
           width: 100%;
           padding: 0;
         }
-        
         .left-section {
           display: flex;
           flex-wrap: wrap;
           justify-content: center;
           align-items: flex-start;
         }
-        
         .right-section {
           display: contents;
         }
-        
         .progress-heading,
         .finished-heading,
-        .no-finished-text {
+        .no-bookings {
           display: none;
         }
       }
@@ -195,81 +234,62 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   </head>
   <body>
+    <!-- Root container for our React app -->
     <div id="root"></div>
+    <!-- All JavaScript code is contained here -->
     <script type="text/babel">
+      // Destructure React features from the React library
       const { useState, useEffect } = React;
       
-      // ProgressBar component displays countdown, progress, or finished status.
+      // ProgressBar component displays booking progress:
+      // - It shows a countdown if the booking hasn't started.
+      // - Displays a progress bar during the booking.
+      // - Shows "Finished" if the booking time is over.
       const ProgressBar = ({ scheduledTime, finishTime }) => {
         const [currentTime, setCurrentTime] = useState(new Date());
-  
         useEffect(() => {
           const timer = setInterval(() => setCurrentTime(new Date()), 1000);
           return () => clearInterval(timer);
         }, []);
   
+        // Ensure times are JavaScript Date objects.
         const scheduled = scheduledTime instanceof Date ? scheduledTime : new Date(scheduledTime);
         const finish = finishTime instanceof Date ? finishTime : new Date(finishTime);
   
+        // Booking hasn't started; show countdown.
         if (currentTime.getTime() < scheduled.getTime()) {
           const untilMs = scheduled.getTime() - currentTime.getTime();
           const untilMinutes = Math.floor(untilMs / 60000);
           const untilSeconds = ('0' + Math.floor((untilMs % 60000) / 1000)).slice(-2);
           return (
-            <div style={{
-              background: '#eee',
-              borderRadius: '4px',
-              width: '100%',
-              height: '40px',
-              marginTop: '10px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#888',
-              fontSize: '16px'
-            }}>
-              <div>
-                Booking starts at {scheduled.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </div>
-              <div>
-                Starts in: {untilMinutes}m {untilSeconds}s
-              </div>
+            <div className="progress-upcoming">
+              <div>Booking starts at {scheduled.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+              <div>Starts in: {untilMinutes}m {untilSeconds}s</div>
             </div>
           );
         }
-  
+        
+        // Booking finished; show finished message.
         if (currentTime.getTime() >= finish.getTime()) {
           return (
-            <div style={{
-              background: '#ccc',
-              borderRadius: '4px',
-              width: '100%',
-              height: '30px',
-              marginTop: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#333',
-              fontSize: '22px'
-            }}>
+            <div className="progress-finished">
               Finished
             </div>
           );
         }
-  
+        
+        // Booking is in progress; calculate progress percentage.
         const elapsed = currentTime.getTime() - scheduled.getTime();
         const totalDuration = finish.getTime() - scheduled.getTime();
         let progressPercentage = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
         progressPercentage = Math.min(Math.max(progressPercentage, 0), 100);
-  
         const remainingMS = finish.getTime() - currentTime.getTime();
         const remainingMinutes = Math.floor(remainingMS / 60000);
         const remainingSeconds = ('0' + Math.floor((remainingMS % 60000) / 1000)).slice(-2);
   
         return (
           <div className="progress-bar-container">
-            <div className="progress-bar" style={{ width: `${progressPercentage}%` }}></div>
+            <div className="progress-bar" style={{ width: `${progressPercentage}%` }} />
             <div className="progress-bar-text">
               ETA: {remainingMinutes}m {remainingSeconds}s
             </div>
@@ -277,39 +297,33 @@
         );
       };
       
-      // BookingCard displays booking details and a progress bar.
+      // BookingCard displays individual booking details along with the progress bar.
+      // Notes:
+      // - Adjust the React component properties as needed.
+      // - Replace the "booking" object properties if your data has a different structure.
+      // - The card width is fixed at 250px with 20px padding on each side.
+      //   Thus the available width for title text is 210px.
       const BookingCard = ({ booking }) => {
-        const bookingDescription = booking.booking_description?.trim() || "NIL";
+        const bookingDescription = booking.booking_description?.replace(/\n/g, ' ')?.trim() || "NIL";
         const serviceName = booking.service_name?.trim() || "NIL";
+        // Card properties
         const cardWidth = 250;
-        const estimatedFontSize = cardWidth / (bookingDescription.length * 0.6);
-        const computedFontSize = Math.min(48, Math.max(24, estimatedFontSize));
-        const cardStyle = {
-          background: 'linear-gradient(45deg, #624a2e, #4f2e1e)',
-          borderRadius: '12px',
-          padding: '20px',
-          margin: '20px',
-          width: `${cardWidth}px`,
-          fontSize: '22px',
-          position: 'relative',
-          boxShadow: 'inset 0 0 20px rgba(0, 0, 0, 0.9)',
-          overflow: 'hidden',
-          border: '1px solid #d4a373',
-          zIndex: 1000
-        };
+        const cardPadding = 20;
+        const availableWidth = cardWidth - cardPadding * 2; // account for left/right padding
+        // Dynamically determine font size based on available width and text length.
+        const computedFontSize = Math.min(48, Math.max(24, availableWidth / (bookingDescription.length * 0.6)));
         return (
-          <div className="booking-card" style={cardStyle}>
-            <div style={{
-              fontWeight: 'bold',
-              marginBottom: '10px',
-              color: 'black',
-              fontSize: `${computedFontSize}px`,
-              lineHeight: 1.2
-            }}>
-              {bookingDescription}
-            </div>
-            <div style={{ marginBottom: '10px' }}>
-              {serviceName}
+          <div className="booking-card">
+            <div className="booking-details">
+              <div 
+                className="booking-title" 
+                style={{ fontSize: `${computedFontSize}px` }}
+              >
+                {bookingDescription}
+              </div>
+              <div className="booking-service">
+                {serviceName}
+              </div>
             </div>
             {booking.scheduledTime && booking.finishTime && (
               <ProgressBar 
@@ -321,33 +335,34 @@
         );
       };
       
-      // ClientDisplay fetches and categorizes bookings.
+      // ClientDisplay handles fetching booking data, processing it, and categorizing bookings.
+      // Notes:
+      // - Replace the fetch URL ("https://silent-papers-unite.loca.lt/bookings") with your own server endpoint URL.
+      // - The code filters out cancelled bookings and chooses the latest booking by unique booking hash.
       const ClientDisplay = () => {
         const [bookings, setBookings] = useState([]);
+  
         const fetchBookings = () => {
+          // Replace this URL with your server endpoint that returns JSON booking data.
           fetch('https://silent-papers-unite.loca.lt/bookings')
             .then(response => response.json())
-            .then((data) => {
+            .then(data => {
               const processedBookings = data.map(booking => {
                 const scheduled = new Date(booking.booking_date_start_tz);
                 const durationMs = parseInt(booking.booking_duration, 10) * 60000;
                 const finish = new Date(scheduled.getTime() + durationMs);
-                return {
-                  ...booking,
-                  scheduledTime: scheduled,
-                  finishTime: finish
-                };
+                return { ...booking, scheduledTime: scheduled, finishTime: finish };
               });
   
+              // Group bookings by their unique hash id.
               const bookingsByHash = {};
               processedBookings.forEach(booking => {
                 const hash = booking.booking_hash_id;
-                if (!bookingsByHash[hash]) {
-                  bookingsByHash[hash] = [];
-                }
+                if (!bookingsByHash[hash]) bookingsByHash[hash] = [];
                 bookingsByHash[hash].push(booking);
               });
   
+              // Exclude cancelled bookings and pick the most recent booking per group.
               const filteredBookings = [];
               Object.keys(bookingsByHash).forEach(hash => {
                 const group = bookingsByHash[hash];
@@ -363,6 +378,7 @@
             .catch(error => console.error('Error fetching bookings:', error));
         };
         
+        // Initial fetch and subsequent updates every minute.
         useEffect(() => {
           fetchBookings();
           const interval = setInterval(fetchBookings, 60000);
@@ -370,27 +386,29 @@
         }, []);
         
         const now = new Date();
+        // Filter bookings into scheduled (future), in-progress (ongoing), and finished (recently finished) categories.
         const scheduledBookings = bookings.filter(booking => booking.scheduledTime.getTime() > now.getTime());
         const inProgressBookings = bookings.filter(booking =>
           now.getTime() >= booking.scheduledTime.getTime() && now.getTime() < booking.finishTime.getTime()
         );
+        // Finished bookings are shown if done within the last hour.
         const finishedBookings = bookings.filter(booking => {
           const finishedTime = booking.finishTime.getTime();
           const oneHourAfter = finishedTime + 3600000;
           return now.getTime() >= finishedTime && now.getTime() <= oneHourAfter;
         });
   
-        // If there are 4 or more finished bookings, use the animated marquee.
+        // If 4 or more finished bookings exist, use a marquee animated effect.
         const useMarquee = finishedBookings.length >= 4;
   
         return (
           <div className="dashboard-container">
             <img src="https://files.catbox.moe/4y7toq.png" alt="Logo" className="dashboard-logo" />
             <div className="left-section">
-              <h2 className="progress-heading heading">Scheduled & In Progress Bookings</h2>
-              <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+              <h2 className="progress-heading heading">Scheduled &amp; In Progress Bookings</h2>
+              <div className="booking-grid">
                 {scheduledBookings.length === 0 && inProgressBookings.length === 0 ? (
-                  <p style={{ color: 'white', fontSize: '24px' }}>
+                  <p className="no-bookings">
                     No upcoming or active bookings available
                   </p>
                 ) : (
@@ -425,6 +443,7 @@
         );
       };
       
+      // Render the ClientDisplay component into the #root element.
       ReactDOM.render(<ClientDisplay />, document.getElementById('root'));
     </script>
   </body>
