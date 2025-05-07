@@ -4,7 +4,7 @@ This project provides a simple API server to manage booking data using a JSON fi
 
 ## License
 
-This project is licensed for noncommercial use only. See [LICENSE](LICENSE) for details.
+This project is licensed for noncommercial use only. See [LICENSE](LICENSE.md) for details.
 
 ## Project Overview
 
