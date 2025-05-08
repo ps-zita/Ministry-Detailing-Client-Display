@@ -272,6 +272,39 @@
     <script crossorigin src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
     <!-- Babel for JSX Transpilation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Wake Lock Script to prevent the device from sleeping (for Android TV) -->
+    <script>
+      let wakeLock = null;
+      
+      async function requestWakeLock() {
+        try {
+          if ("wakeLock" in navigator) {
+            wakeLock = await navigator.wakeLock.request('screen');
+            console.log('Wake Lock is active!');
+            wakeLock.addEventListener('release', () => {
+              console.log('Wake Lock was released');
+            });
+          } else {
+            console.warn("Wake Lock API not supported on this device.");
+          }
+        } catch (err) {
+          console.error(`Unable to obtain wake lock: ${err}`);
+        }
+      }
+      
+      document.addEventListener('visibilitychange', async () => {
+        if (document.visibilityState === 'visible') {
+          await requestWakeLock();
+        } else if (wakeLock !== null) {
+          wakeLock.release();
+          wakeLock = null;
+        }
+      });
+      
+      // Request the wake lock on page load.
+      requestWakeLock();
+    </script>
   </head>
   <body>
     <div id="root"></div>
