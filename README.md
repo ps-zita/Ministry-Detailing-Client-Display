@@ -1,138 +1,135 @@
 # Ministry Detailing Client Display
 
-This project is created for **Ministry of Detailing** to enhance the client experience by providing a real-time booking display system and a simple API server to manage booking data. The system is designed to run on a monitor at the front of the store, allowing clients to view the progress of their bookings in real-time. It also includes an API server that uses a JSON file for storage, enabling easy integration with webhooks and other systems to manage booking data.
+This project is created for Ministry of Detailing to enhance the client experience by providing a real-time booking display system and a simple API server to manage booking data. The system is designed to run on a monitor at the front of the store, allowing clients to view the progress of their bookings in real-time. It also includes an API server that uses a JSON file for storage, enabling easy integration with webhooks and other systems to manage booking data.
 
-The dashboard shows scheduled, in-progress, and recently finished bookings, letting clients easily track their appointments. Meanwhile, the API server handles incoming webhook data for storage and provides an endpoint to serve the current list of bookings to the client display.
+The dashboard shows scheduled, in-progress, and recently finished bookings, letting clients easily track their appointments. In addition, the client display now features a dynamic horizontal marquee at the bottom of the screen. This marquee continuously scrolls live news headlines fetched from various New York Times RSS feeds (MiddleEast, World, Soccer, Business) and live stock ticker elements. The stock tickers are retrieved via the Alpha Vantage API using the provided API key and display key financial instruments and indices with Unicode triangle indicators (▲ for up in green, ▼ for down in red). A fixed rewards message ("ASK US ABOUT OUR REWARDS PROGRAM") is also interleaved periodically, ensuring that the marquee adds an extra layer of engaging real-time information.
 
-## License
+The API server handles incoming webhook data for storage and provides an endpoint to serve the current list of bookings to the client display.
 
-This project is licensed for noncommercial use only. See [LICENSE](LICENSE.md) for details.
+---
 
 ## Project Overview
 
-- **Purpose:**  
-  To provide a live client display system for **Ministry of Detailing** that shows booking information on a monitor at the storefront while also offering a simple API server to manage booking data.
+### Purpose
+To provide a live client display system for Ministry of Detailing that shows booking information on a storefront monitor while offering a simple API server to manage booking data. The marquee, integrating live news headlines and stock tickers, further enhances the client experience with engaging, real-time information.
 
-- **Server Implementation:**  
-  The server is implemented using Node.js with the Express framework. It listens on port 3001 and handles two endpoints:
-  - `POST /webhook`: Receives booking data as JSON, appends it to a local JSON file (`bookings.json`), and returns the newly stored booking.
-  - `GET /bookings`: Serves the current list of bookings from the JSON file.
+### Server Implementation
+- **API Server:**  
+  - **Framework:** Node.js with Express.
+  - **Port:** The server listens on port 3001.
+  - **Endpoints:**  
+    - `POST /webhook`: Receives booking data as JSON, appends it to a local JSON file (`bookings.json`), and returns the newly stored booking.
+    - `GET /bookings`: Serves the current list of bookings from the JSON file.
 
-- **Dependencies:**
-  - Express for handling HTTP requests.
-  - CORS to enable cross-origin resource sharing.
-  - Node's built-in `fs` and `path` modules for file system operations.
+### Dependencies
+- **Express:** For handling HTTP requests.
+- **CORS:** To enable cross-origin resource sharing.
+- **Node Modules:** Built-in `fs` and `path` for local file system operations.
+
+---
 
 ## Getting Started
 
 ### Prerequisites
-
 - Node.js installed on your server.
 - npm (Node Package Manager) to install dependencies.
-- [Localtunnel](https://localtunnel.github.io/www/) (or a similar tunneling service) for exposing your local server to the internet.
+- Localtunnel (or a similar service) for exposing your local server to the internet.
 
 ### Installation
 
 1. **Clone the Repository:**
-
    ```bash
    git clone https://github.com/ps-zita/Ministry-Detailing-Client-Display.git
    cd Ministry-Detailing-Client-Display
    ```
 
 2. **Install Dependencies:**
-
    ```bash
    npm install
    ```
 
 3. **Run the Server:**
-
-   Start the server using Node.js:
-
    ```bash
    node server.js
    ```
-
-   The server will run on port 3001.
+   The server runs on port 3001.
 
 ### Exposing Your Server with Localtunnel
 
-1. **Tunnel Your Local Server:**
+- **Tunnel Your Local Server:**
+  ```bash
+  npx localtunnel --port 3001 --subdomain your-custom-subdomain
+  ```
+  This will create a public URL, such as `https://your-custom-subdomain.loca.lt`.
 
-   Run **monitor_localtunnel.sh** or use Localtunnel to expose the server running on port 3001. Replace `<subdomain>` with your preferred subdomain if required. If prompted, enter your password on the client-side device.
-
-   ```bash
-   npx localtunnel --port 3001 --subdomain your-custom-subdomain
-   ```
-
-   This command will create a public URL (for example, `https://your-custom-subdomain.loca.lt`) that tunnels to your local server.
-
-3. **Update the Client-Side HTML:**
-
-   In your client-side HTML file, update the API URL to the Localtunnel link. For example, change the fetch URL from:
-
-   ```javascript
-   fetch('https://localhost:3001/bookings')
-   ```
-
-   to:
-
-   ```javascript
-   fetch('https://your-custom-subdomain.loca.lt/bookings')
-   ```
+- **Update Client-Side HTML:**
+  In your client-side HTML, change the API URL from:
+  ```js
+  fetch('https://localhost:3001/bookings')
+  ```
+  to:
+  ```js
+  fetch('https://your-custom-subdomain.loca.lt/bookings')
+  ```
 
 ### Configuring Your Webhook
 
 - **Webhook Endpoint:**
-
-  Use your CRM webhook setup to point to the Localtunnel URL with the `/webhook` path. For example:
-
+  Configure your CRM webhook to point to:
   ```
   https://your-custom-subdomain.loca.lt/webhook
   ```
 
-- **Authentication:**
+- **Authentication:**  
+  If prompted, provide the necessary client-side device password.
 
-  If your localtunnel service requests a password on the client-side device, make sure to provide the required password for authentication.
+---
 
 ## Project Structure
 
 ```
-├── server.js                   # The main API server file handling webhook and bookings endpoints
-├── bookings.json               # JSON file storing booking data (created automatically if it doesn't exist)
-├── monitor_localtunnel.sh      # Tunnels port 3001 for recieving webhooks
-└── README.md                   # This documentation file
+├── server.js                   # Main API server file handling webhook and bookings endpoints
+├── bookings.json               # JSON file storing booking data (auto-created if not present)
+├── monitor_localtunnel.sh      # Script to tunnel port 3001 for webhook reception
+└── README.md                   # Project documentation (this file)
 ```
+
+---
 
 ## Customization
 
 - **Endpoint URLs:**  
-  Change the endpoints in `server.js` if needed. For example, modify the `/webhook` route to suit your integration needs.
+  Modify endpoints in `server.js` as needed (e.g., adjust the `/webhook` route).
 
 - **Data Storage:**  
-  This example uses a local JSON file for storage. For production, consider integrating a database.
+  Uses a local JSON file; for production, consider integrating a proper database.
 
 - **Localtunnel Configuration:**  
-  Modify the Localtunnel parameters (such as subdomain) as needed. Make sure to update all client-side links accordingly.
+  Adjust the Localtunnel parameters (e.g., subdomain) as needed and update your client-side links accordingly.
+
+---
 
 ## Noncommercial Use Notice
 
-This project and its code are provided for noncommercial, educational, and personal use only. For any other use, please contact me to seek an appropriate license or permission. 
+This project is provided for noncommercial, educational, and personal use only. For any other use, please contact the author for appropriate licensing or permissions.
+
+---
 
 ## Troubleshooting
 
 - **CORS Issues:**  
-  The server has CORS enabled, but if you encounter cross-origin errors, check your browser console for details.
+  The server has CORS enabled. If you encounter cross-origin errors, check your browser console.
 
 - **File Read/Write Errors:**  
-  Ensure the server has the necessary permissions to read/write `bookings.json`.
+  Ensure the server has the necessary permissions to access and modify `bookings.json`.
 
 - **Localtunnel Issues:**  
-  If the public URL is not accessible, verify that Localtunnel is running correctly and that no firewall is blocking the connection.
+  Verify that Localtunnel is running properly and that your firewall settings allow external connections.
+
+---
 
 ## Conclusion
 
-This project serves as a basic template for an API server that collects webhook data, stores it locally, and serves it via an endpoint. It powers a client display system that provides a seamless and transparent booking experience for **Ministry of Detailing** clients. 
+This project serves as a foundational template for an API server which collects and serves booking data, powering a dynamic client display system. With the integrated marquee that provides live news headlines and real-time stock tickers, Ministry of Detailing offers an engaging and informative experience for its customers. Customize the solution to meet your specific needs and integrate it with your CRM or webhook provider for a seamless booking experience.
 
-Customize it to fit your specific requirements and integrate it with your CRM or webhook provider.
+Happy Detailing!
