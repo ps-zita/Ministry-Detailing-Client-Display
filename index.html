@@ -2,34 +2,42 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <!-- Use responsive viewport -->
+    <title>BOOKINGS DASHBOARD</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Bookings Dashboard</title>
-    <!-- 
-      All CSS is contained here in the <style> tag.
-      Replace or modify styles as needed.
-      For production, consider moving CSS to an external stylesheet.
-    -->
     <style>
-      /* Global styles for the page and body */
-      html, body {
+      /* 
+        GLOBAL STYLES
+        -----------------------------------------------------------------------------
+        These rules establish the global look of the page with a gradient background,
+        no margins, a consistent font, and locked scrolling behavior.
+      */
+      html,
+      body {
         margin: 0;
         padding: 0;
         height: 100%;
         font-family: Arial, sans-serif;
         overflow: hidden;
         background: linear-gradient(90deg, #0f0c29, #302b63, #24243e);
+        text-transform: uppercase;
       }
       #root {
         min-height: 100%;
       }
-      /* Main container holding left and right sections */
+      
+      /* 
+        DASHBOARD LAYOUT
+        -----------------------------------------------------------------------------
+        The main layout is split into a left section for current bookings and a right
+        section for finished bookings (displayed vertically in a marquee). A faint logo is
+        centered as a background design.
+      */
       .dashboard-container {
         display: flex;
         min-height: 100vh;
         position: relative;
+        padding-bottom: 60px; /* Space for the horizontal news marquee */
       }
-      /* Left section styles: scheduled/in-progress bookings */
       .left-section {
         flex: 4;
         padding: 20px;
@@ -37,7 +45,6 @@
         position: relative;
         z-index: 1000;
       }
-      /* Right section styles: finished bookings */
       .right-section {
         flex: 1;
         padding: 20px;
@@ -45,7 +52,6 @@
         position: relative;
         z-index: 1000;
       }
-      /* Centered logo in the background */
       .dashboard-logo {
         position: fixed;
         top: 50%;
@@ -56,11 +62,17 @@
         z-index: 900;
         opacity: 0.1;
       }
-      /* Styling for each booking card */
+      
+      /* 
+        BOOKING CARDS
+        -----------------------------------------------------------------------------
+        Booking cards display details about each booking, including a title,
+        a service name, and a progress bar.
+      */
       .booking-card {
         display: flex;
         flex-direction: column;
-        justify-content: space-between;  /* Ensures progress bar stays at the bottom */
+        justify-content: space-between;
         background: linear-gradient(45deg, #624a2e, #4f2e1e);
         border-radius: 12px;
         padding: 20px;
@@ -69,46 +81,44 @@
         font-size: 22px;
         position: relative;
         box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.9);
-        overflow: hidden;
         border: 1px solid #d4a373;
         z-index: 1000;
       }
-      /* Container for booking text/details */
       .booking-details {
         margin-bottom: 10px;
       }
-      /* Booking title styling */
       .booking-title {
         font-weight: bold;
         margin-bottom: 10px;
         color: black;
         line-height: 1.2;
-        white-space: nowrap;         /* Forces the title to appear on one line */
-        overflow: hidden;            /* Hide overflowed text */
-        text-overflow: ellipsis;     /* Display ellipsis if text overflows */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
-      /* Booking service text styling */
       .booking-service {
         margin-bottom: 10px;
-        color: black;  /* Set service text color to black */
+        color: black;
       }
-      /* General heading styles */
       .heading {
         font-size: 28px;
         margin-bottom: 20px;
         color: white;
       }
-      /* Grid for scheduled/in-progress bookings */
       .booking-grid {
         display: flex;
         flex-wrap: wrap;
       }
-      /* Style when no bookings available */
       .no-bookings {
         color: white;
         font-size: 24px;
       }
-      /* Progress bar container; margin-top: auto pushes it to the bottom */
+      
+      /* 
+        PROGRESS BARS
+        -----------------------------------------------------------------------------
+        Styles for progress bars that visually represent booking timings.
+      */
       .progress-bar-container {
         position: relative;
         background: #eee;
@@ -118,14 +128,12 @@
         margin-top: auto;
         overflow: hidden;
       }
-      /* Filled part of the progress bar */
       .progress-bar {
         background: linear-gradient(90deg, #d4a373, #c78642);
         border-radius: 4px;
         height: 100%;
         transition: width 1s linear;
       }
-      /* Text overlay on the progress bar */
       .progress-bar-text {
         position: absolute;
         top: 0;
@@ -136,7 +144,6 @@
         font-size: 22px;
         color: #333;
       }
-      /* Styling for bookings that haven't started yet */
       .progress-upcoming {
         background: #eee;
         border-radius: 4px;
@@ -150,7 +157,6 @@
         color: #888;
         font-size: 16px;
       }
-      /* Styling for finished bookings */
       .progress-finished {
         background: #ccc;
         border-radius: 4px;
@@ -163,7 +169,12 @@
         color: #333;
         font-size: 22px;
       }
-      /* Marquee effect for finished bookings if there are enough bookings */
+      
+      /* 
+        FINISHED BOOKINGS MARQUEE (Vertical)
+        -----------------------------------------------------------------------------
+        Displays finished bookings in a vertical scrolling marquee pattern.
+      */
       .marquee-wrapper {
         height: calc(100vh - 80px);
         overflow: hidden;
@@ -184,16 +195,49 @@
         flex-direction: column;
         gap: 20px;
       }
-      /* Responsive styles for mobile devices */
+      
+      /* 
+        NEWS MARQUEE (Horizontal)
+        -----------------------------------------------------------------------------
+        Creates a horizontal news ticker at the bottom. News articles from NYTimes
+        feeds are interleaved with live stock ticker elements loaded via API calls.
+        Between every single element (news, rewards, stock ticker) there is a separation.
+      */
+      .news-marquee {
+        width: 100%;
+        background-color: black;
+        color: white;
+        overflow: hidden;
+        white-space: nowrap;
+        position: fixed;
+        bottom: 0;
+        padding: 10px 0;
+        z-index: 1100;
+      }
+      .news-marquee-content {
+        display: inline-block;
+        white-space: nowrap;
+      }
+      .animate {
+        animation: marqueeText 1000s linear infinite;
+      }
+      @keyframes marqueeText {
+        0% { transform: translateX(0%); }
+        100% { transform: translateX(-50%); }
+      }
+      
+      /* 
+        RESPONSIVE DESIGN
+        -----------------------------------------------------------------------------
+        Adjusts layout for mobile and smaller devices.
+      */
       @media only screen and (max-width: 768px) {
         .dashboard-container {
           flex-direction: column;
           overflow: auto;
           min-height: auto;
         }
-        #root {
-          height: 140%;
-        }
+        #root { height: 140%; }
         .dashboard-logo {
           position: static;
           transform: none;
@@ -217,46 +261,67 @@
           justify-content: center;
           align-items: flex-start;
         }
-        .right-section {
-          display: contents;
-        }
+        .right-section { display: contents; }
         .progress-heading,
         .finished-heading,
-        .no-bookings {
-          display: none;
-        }
+        .no-bookings { display: none; }
       }
     </style>
-    <!-- Include React and ReactDOM from CDN -->
+    <!-- React and ReactDOM Libraries -->
     <script crossorigin src="https://unpkg.com/react@17/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
-    <!-- Include Babel for JSX transformation -->
+    <!-- Babel for JSX Transpilation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   </head>
   <body>
-    <!-- Root container for our React app -->
     <div id="root"></div>
-    <!-- All JavaScript code is contained here -->
     <script type="text/babel">
-      // Destructure React features from the React library
       const { useState, useEffect } = React;
       
-      // ProgressBar component displays booking progress:
-      // - It shows a countdown if the booking hasn't started.
-      // - Displays a progress bar during the booking.
-      // - Shows "Finished" if the booking time is over.
+      // Your Alpha Vantage API key
+      const ALPHA_VANTAGE_API_KEY = "CN4U79ERTJRY6LEW";
+      
+      /*
+        HELPER FUNCTION: transformServiceName
+        -----------------------------------------------------------------------------
+        Converts a service name to uppercase and, when it contains " AND ",
+        truncates to only the first two words for uniform display.
+      */
+      function transformServiceName(name) {
+        if (!name) return "NIL";
+        let upper = name.toUpperCase();
+        if (upper.includes(" AND ")) {
+          let beforeAnd = upper.split(" AND ")[0];
+          let words = beforeAnd.split(" ");
+          return words.length > 2 ? words.slice(0, 2).join(" ") : beforeAnd;
+        }
+        return upper;
+      }
+      
+      /*
+        COMPONENT: ProgressBar
+        -----------------------------------------------------------------------------
+        Displays a countdown until a booking starts or indicates if it’s finished.
+        Updates every second.
+      */
       const ProgressBar = ({ scheduledTime, finishTime }) => {
         const [currentTime, setCurrentTime] = useState(new Date());
         useEffect(() => {
           const timer = setInterval(() => setCurrentTime(new Date()), 1000);
           return () => clearInterval(timer);
         }, []);
-  
-        // Ensure times are JavaScript Date objects.
+      
         const scheduled = scheduledTime instanceof Date ? scheduledTime : new Date(scheduledTime);
         const finish = finishTime instanceof Date ? finishTime : new Date(finishTime);
-  
-        // Booking hasn't started; show countdown.
+      
+        if (currentTime.getTime() < scheduled.getTime() &&
+            currentTime.toDateString() !== scheduled.toDateString()) {
+          return (
+            <div className="progress-upcoming">
+              <div>Booking starts at {scheduled.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+            </div>
+          );
+        }
         if (currentTime.getTime() < scheduled.getTime()) {
           const untilMs = scheduled.getTime() - currentTime.getTime();
           const untilMinutes = Math.floor(untilMs / 60000);
@@ -268,8 +333,6 @@
             </div>
           );
         }
-        
-        // Booking finished; show finished message.
         if (currentTime.getTime() >= finish.getTime()) {
           return (
             <div className="progress-finished">
@@ -277,8 +340,6 @@
             </div>
           );
         }
-        
-        // Booking is in progress; calculate progress percentage.
         const elapsed = currentTime.getTime() - scheduled.getTime();
         const totalDuration = finish.getTime() - scheduled.getTime();
         let progressPercentage = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
@@ -286,7 +347,6 @@
         const remainingMS = finish.getTime() - currentTime.getTime();
         const remainingMinutes = Math.floor(remainingMS / 60000);
         const remainingSeconds = ('0' + Math.floor((remainingMS % 60000) / 1000)).slice(-2);
-  
         return (
           <div className="progress-bar-container">
             <div className="progress-bar" style={{ width: `${progressPercentage}%` }} />
@@ -297,28 +357,27 @@
         );
       };
       
-      // BookingCard displays individual booking details along with the progress bar.
-      // Notes:
-      // - Adjust the React component properties as needed.
-      // - Replace the "booking" object properties if your data has a different structure.
-      // - The card width is fixed at 250px with 20px padding on each side.
-      //   Thus the available width for title text is 210px.
+      /*
+        COMPONENT: BookingCard
+        -----------------------------------------------------------------------------
+        Renders details of an individual booking, including title, service name, 
+        and a progress bar that reflects booking timing.
+      */
       const BookingCard = ({ booking }) => {
-        const bookingDescription = booking.booking_description?.replace(/\n/g, ' ')?.trim() || "NIL";
-        const serviceName = booking.service_name?.trim() || "NIL";
-        // Card properties
+        const bookingDescription = booking.booking_description
+          ? booking.booking_description.replace(/\n/g, ' ').trim().toUpperCase()
+          : "NIL";
+        const serviceName = booking.service_name
+          ? transformServiceName(booking.service_name)
+          : "NIL";
         const cardWidth = 250;
         const cardPadding = 20;
-        const availableWidth = cardWidth - cardPadding * 2; // account for left/right padding
-        // Dynamically determine font size based on available width and text length.
+        const availableWidth = cardWidth - cardPadding * 2;
         const computedFontSize = Math.min(48, Math.max(24, availableWidth / (bookingDescription.length * 0.6)));
         return (
           <div className="booking-card">
             <div className="booking-details">
-              <div 
-                className="booking-title" 
-                style={{ fontSize: `${computedFontSize}px` }}
-              >
+              <div className="booking-title" style={{ fontSize: computedFontSize + "px" }}>
                 {bookingDescription}
               </div>
               <div className="booking-service">
@@ -326,25 +385,204 @@
               </div>
             </div>
             {booking.scheduledTime && booking.finishTime && (
-              <ProgressBar 
-                scheduledTime={booking.scheduledTime}
-                finishTime={booking.finishTime}
-              />
+              <ProgressBar scheduledTime={booking.scheduledTime} finishTime={booking.finishTime} />
             )}
           </div>
         );
       };
       
-      // ClientDisplay handles fetching booking data, processing it, and categorizing bookings.
-      // Notes:
-      // - Replace the fetch URL ("https://silent-papers-unite.loca.lt/bookings") with your own server endpoint URL.
-      // - The code filters out cancelled bookings and chooses the latest booking by unique booking hash.
+      /*
+        FUNCTION: fetchStockData
+        -----------------------------------------------------------------------------
+        Uses the Alpha Vantage API to retrieve stock data for a given symbol via the GLOBAL_QUOTE endpoint.
+        Returns an object containing the symbol, price, change, and change percent.
+      */
+      async function fetchStockData(symbol) {
+        const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${encodeURIComponent(symbol)}&apikey=${ALPHA_VANTAGE_API_KEY}`;
+        try {
+          const response = await fetch(url);
+          const data = await response.json();
+          const quote = data["Global Quote"];
+          if (quote && Object.keys(quote).length > 0) {
+            return {
+              symbol: quote["01. symbol"],
+              price: quote["05. price"],
+              change: parseFloat(quote["09. change"]),
+              changePercent: quote["10. change percent"]
+            };
+          } else {
+            throw new Error("No data");
+          }
+        } catch (error) {
+          console.error("Error fetching stock data for ", symbol, error);
+          return null;
+        }
+      }
+      
+      /*
+        FUNCTION: generateStockTickerElement
+        -----------------------------------------------------------------------------
+        Given stock data, returns a JSX element representing the ticker.
+        It uses Unicode triangle characters (▲ for up in green, ▼ for down in red)
+        based on the stock's change value.
+      */
+      function generateStockTickerElement(stockData) {
+        if (!stockData) return <span style={{ color: "gray" }}>N/A</span>;
+        const { symbol, change, changePercent } = stockData;
+        const isUp = change >= 0;
+        const triangle = isUp ? "▲" : "▼";
+        const color = isUp ? "green" : "red";
+        return <span style={{ color }}>{symbol} {triangle} {changePercent}</span>;
+      }
+      
+      /*
+        FUNCTION: fetchAllStockTickers
+        -----------------------------------------------------------------------------
+        Defines an array of stock symbols to fetch live data for.
+        Uses Promise.all to concurrently fetch data from Alpha Vantage for each symbol.
+        Returns an array of JSX ticker elements generated from live data.
+      */
+      async function fetchAllStockTickers() {
+        // Define a list of symbols. Note: For currencies or indices, adjust the symbol as required.
+        // Here we assume simple ticker symbols; actual symbols may vary.
+        const symbols = ["AUDUSD", "GBPUSD", "SPY", "AAPL", "NVDA", "DJIA", "IXIC", "TSLA", "EURUSD", "JPYUSD", "HKDUSD", "FTSE", "GDAXI", "CAC", "N225", "KS11", "RUT", "USO", "GLD"];
+        const results = await Promise.all(symbols.map(sym => fetchStockData(sym)));
+        // Filter out any null responses and generate ticker elements.
+        const tickerElements = results
+          .filter(data => data !== null)
+          .map(data => generateStockTickerElement(data));
+        return tickerElements;
+      }
+      
+      /*
+        COMPONENT: ClientDisplay
+        -----------------------------------------------------------------------------
+        The main component that:
+          - Fetches bookings.
+          - Fetches news headlines from NYTimes RSS feeds (MiddleEast, World, Soccer, Business)
+            in a round-robin order.
+          - Retrieves live stock ticker elements using the Alpha Vantage API.
+          - Interleaves news, live stock tickers, and a rewards message between every item.
+      */
       const ClientDisplay = () => {
         const [bookings, setBookings] = useState([]);
-  
+        const [marqueeItems, setMarqueeItems] = useState([]);
+        const [stockTickers, setStockTickers] = useState([]);
+      
+        // Fetch live stock ticker elements upon component mount.
+        useEffect(() => {
+          fetchAllStockTickers().then(tickers => {
+            setStockTickers(tickers);
+          });
+        }, []);
+      
+        /*
+          FUNCTION: fetchFeedHeadlines
+          -----------------------------------------------------------------------------
+          Given an RSS feed URL, fetches and parses the XML to return an array of headline strings.
+        */
+        const fetchFeedHeadlines = async (url) => {
+          try {
+            const response = await fetch(url);
+            const text = await response.text();
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(text, "application/xml");
+            const items = xmlDoc.querySelectorAll("item");
+            const headlines = [];
+            items.forEach(item => {
+              const titleEl = item.querySelector("title");
+              if (titleEl) {
+                headlines.push(titleEl.textContent);
+              }
+            });
+            return headlines;
+          } catch (error) {
+            console.error("Error fetching or parsing RSS feed from", url);
+            return [];
+          }
+        };
+      
+        /*
+          FUNCTION: fetchNews
+          -----------------------------------------------------------------------------
+          Fetches headlines from NYTimes feeds in this round-robin order:
+            1. MiddleEast, 2. World, 3. Soccer, 4. Business.
+        */
+        const fetchNews = async () => {
+          const feeds = [
+            { name: "MiddleEast", url: "https://rss.nytimes.com/services/xml/rss/nyt/MiddleEast.xml" },
+            // World headlines fetched separately.
+            { name: "Soccer", url: "https://rss.nytimes.com/services/xml/rss/nyt/Soccer.xml" },
+            { name: "Business", url: "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml" }
+          ];
+          const middleEastHeadlines = await fetchFeedHeadlines(feeds[0].url);
+          const soccerHeadlines = await fetchFeedHeadlines(feeds[1].url);
+          const businessHeadlines = await fetchFeedHeadlines(feeds[2].url);
+          const worldHeadlines = await fetchFeedHeadlines("https://rss.nytimes.com/services/xml/rss/nyt/World.xml");
+      
+          let orderedHeadlines = [];
+          const maxLength = Math.max(middleEastHeadlines.length, worldHeadlines.length, soccerHeadlines.length, businessHeadlines.length);
+          for (let i = 0; i < maxLength; i++) {
+            if (middleEastHeadlines[i]) orderedHeadlines.push(middleEastHeadlines[i]);
+            if (worldHeadlines[i]) orderedHeadlines.push(worldHeadlines[i]);
+            if (soccerHeadlines[i]) orderedHeadlines.push(soccerHeadlines[i]);
+            if (businessHeadlines[i]) orderedHeadlines.push(businessHeadlines[i]);
+          }
+          return orderedHeadlines.length > 0 ? orderedHeadlines : ["Breaking News: No Articles Available"];
+        };
+      
+        /*
+          FUNCTION: updateMarqueeItems
+          -----------------------------------------------------------------------------
+          Fetches news headlines and interleaves them with live stock ticker elements (from state)
+          and a rewards message every 3 news items. Ticker elements are also inserted between every element.
+        */
+        const updateMarqueeItems = async () => {
+          const headlines = await fetchNews(); // Array of news headlines.
+          const rewardsMessage = <span key="rewards">ASK US ABOUT OUR REWARDS PROGRAM</span>;
+          let combined = [];
+          let stockTickerIndex = 0;
+          for (let i = 0; i < headlines.length; i++) {
+            // Insert news article.
+            combined.push(<span key={`news-${i}`}>{headlines[i]}</span>);
+            // Insert a stock ticker element after each news article.
+            if (stockTickers.length > 0) {
+              combined.push(
+                <span key={`ticker-${i}`}>
+                  {stockTickers[stockTickerIndex % stockTickers.length]}
+                </span>
+              );
+              stockTickerIndex++;
+            }
+            // After every 3 news articles, insert the rewards message and then a stock ticker.
+            if ((i + 1) % 3 === 0) {
+              combined.push(<span key={`rewards-${i}`}>{rewardsMessage}</span>);
+              if (stockTickers.length > 0 && i < headlines.length - 1) {
+                combined.push(
+                  <span key={`ticker-r-${i}`}>
+                    {stockTickers[stockTickerIndex % stockTickers.length]}
+                  </span>
+                );
+                stockTickerIndex++;
+              }
+            }
+          }
+          setMarqueeItems(combined);
+        };
+      
+        // Refresh news headlines on mount.
+        useEffect(() => {
+          updateMarqueeItems();
+        }, [stockTickers]);
+      
+        /*
+          FUNCTION: fetchBookings
+          -----------------------------------------------------------------------------
+          Fetches booking data from an API endpoint, converts date fields,
+          filters out cancelled bookings, and groups bookings by their hash to retain only the latest update.
+        */
         const fetchBookings = () => {
-          // Replace this URL with your server endpoint that returns JSON booking data.
-          fetch('https://silent-papers-unite.loca.lt/bookings')
+          fetch("https://silent-papers-unite.loca.lt/bookings")
             .then(response => response.json())
             .then(data => {
               const processedBookings = data.map(booking => {
@@ -353,90 +591,104 @@
                 const finish = new Date(scheduled.getTime() + durationMs);
                 return { ...booking, scheduledTime: scheduled, finishTime: finish };
               });
-  
-              // Group bookings by their unique hash id.
               const bookingsByHash = {};
               processedBookings.forEach(booking => {
                 const hash = booking.booking_hash_id;
                 if (!bookingsByHash[hash]) bookingsByHash[hash] = [];
                 bookingsByHash[hash].push(booking);
               });
-  
-              // Exclude cancelled bookings and pick the most recent booking per group.
               const filteredBookings = [];
               Object.keys(bookingsByHash).forEach(hash => {
                 const group = bookingsByHash[hash];
-                if (group.some(b => b.booking_status === 'Cancelled')) return;
+                if (group.some(b => b.booking_status === "Cancelled")) return;
                 const latestBooking = group.reduce((prev, curr) =>
-                  new Date(curr.booking_created_at) > new Date(prev.booking_created_at) ? curr : prev
-                , group[0]);
+                  new Date(curr.booking_updated_at || curr.booking_created_at) >
+                  new Date(prev.booking_updated_at || prev.booking_created_at)
+                    ? curr
+                    : prev,
+                  group[0]
+                );
                 filteredBookings.push(latestBooking);
               });
-  
               setBookings(filteredBookings);
             })
-            .catch(error => console.error('Error fetching bookings:', error));
+            .catch(error => console.error("Error fetching bookings:", error));
         };
-        
-        // Initial fetch and subsequent updates every minute.
+      
+        // Fetch bookings when component mounts and every 60 seconds.
         useEffect(() => {
           fetchBookings();
           const interval = setInterval(fetchBookings, 60000);
           return () => clearInterval(interval);
         }, []);
-        
+      
+        // Categorize bookings based on time.
         const now = new Date();
-        // Filter bookings into scheduled (future), in-progress (ongoing), and finished (recently finished) categories.
-        const scheduledBookings = bookings.filter(booking => booking.scheduledTime.getTime() > now.getTime());
-        const inProgressBookings = bookings.filter(booking =>
-          now.getTime() >= booking.scheduledTime.getTime() && now.getTime() < booking.finishTime.getTime()
+        const scheduledBookings = bookings.filter(
+          booking => booking.scheduledTime.getTime() > now.getTime()
         );
-        // Finished bookings are now shown if done within the last 4 hours.
+        const inProgressBookings = bookings.filter(
+          booking =>
+            now.getTime() >= booking.scheduledTime.getTime() &&
+            now.getTime() < booking.finishTime.getTime()
+        );
         const finishedBookings = bookings.filter(booking => {
           const finishedTime = booking.finishTime.getTime();
-          const fourHoursAfter = finishedTime + 14400000; // 4 hours in milliseconds
+          const fourHoursAfter = finishedTime + 14400000;
           return now.getTime() >= finishedTime && now.getTime() <= fourHoursAfter;
         });
-  
-        // If 4 or more finished bookings exist, use a marquee animated effect.
         const useMarquee = finishedBookings.length >= 4;
-  
+      
         return (
-          <div className="dashboard-container">
-            <img src="https://files.catbox.moe/4y7toq.png" alt="Logo" className="dashboard-logo" />
-            <div className="left-section">
-              <h2 className="progress-heading heading">Scheduled &amp; In Progress Bookings</h2>
-              <div className="booking-grid">
-                {scheduledBookings.length === 0 && inProgressBookings.length === 0 ? (
-                  <p className="no-bookings">
-                    No upcoming or active bookings available
-                  </p>
-                ) : (
-                  [...scheduledBookings, ...inProgressBookings].map(booking => (
-                    <BookingCard key={booking.booking_hash_id} booking={booking} />
-                  ))
-                )}
+          <div>
+            <div className="dashboard-container">
+              <img src="https://files.catbox.moe/4y7toq.png" alt="Logo" className="dashboard-logo" />
+              <div className="left-section">
+                <h2 className="progress-heading heading">
+                  SCHEDULED &amp; IN PROGRESS BOOKINGS
+                </h2>
+                <div className="booking-grid">
+                  {scheduledBookings.length === 0 && inProgressBookings.length === 0 ? (
+                    <p className="no-bookings">NO UPCOMING OR ACTIVE BOOKINGS AVAILABLE</p>
+                  ) : (
+                    [...scheduledBookings, ...inProgressBookings].map(booking => (
+                      <BookingCard key={booking.booking_hash_id} booking={booking} />
+                    ))
+                  )}
+                </div>
+              </div>
+              <div className="right-section">
+                <h2 className="finished-heading heading">FINISHED BOOKINGS</h2>
+                <div className="marquee-wrapper">
+                  {useMarquee ? (
+                    <div className="marquee-container">
+                      {finishedBookings.map(booking => (
+                        <BookingCard key={booking.booking_hash_id} booking={booking} />
+                      ))}
+                      {finishedBookings.map(booking => (
+                        <BookingCard key={booking.booking_hash_id + "_dup"} booking={booking} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="marquee-container-static">
+                      {finishedBookings.map(booking => (
+                        <BookingCard key={booking.booking_hash_id} booking={booking} />
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-            <div className="right-section">
-              <h2 className="finished-heading heading">Finished Bookings</h2>
-              <div className="marquee-wrapper">
-                {useMarquee ? (
-                  <div className="marquee-container">
-                    {finishedBookings.map(booking => (
-                      <BookingCard key={booking.booking_hash_id} booking={booking} />
-                    ))}
-                    {finishedBookings.map(booking => (
-                      <BookingCard key={booking.booking_hash_id + "_dup"} booking={booking} />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="marquee-container-static">
-                    {finishedBookings.map(booking => (
-                      <BookingCard key={booking.booking_hash_id} booking={booking} />
-                    ))}
-                  </div>
-                )}
+            <div className="news-marquee">
+              <div className="news-marquee-content animate">
+                {marqueeItems.length > 0
+                  ? marqueeItems.map((item, index) => (
+                      <React.Fragment key={index}>
+                        {item}
+                        {index < marqueeItems.length - 1 && <span> • </span>}
+                      </React.Fragment>
+                    ))
+                  : "LOADING MARQUEE DATA..."}
               </div>
             </div>
           </div>
@@ -444,7 +696,7 @@
       };
       
       // Render the ClientDisplay component into the #root element.
-      ReactDOM.render(<ClientDisplay />, document.getElementById('root'));
+      ReactDOM.render(<ClientDisplay />, document.getElementById("root"));
     </script>
   </body>
 </html>
