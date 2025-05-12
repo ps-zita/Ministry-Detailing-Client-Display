@@ -133,5 +133,3 @@ This project is provided for noncommercial, educational, and personal use only. 
 ## Conclusion
 
 This project serves as a foundational template for an API server which collects and serves booking data, powering a dynamic client display system. With the integrated marquee that provides live news headlines and real-time stock tickers, Ministry of Detailing offers an engaging and informative experience for its customers. Customize the solution to meet your specific needs and integrate it with your CRM or webhook provider for a seamless booking experience.
-
-Happy Detailing!
