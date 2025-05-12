@@ -8,9 +8,8 @@
       /* 
         GLOBAL STYLES
         -----------------------------------------------------------------------------
-        This section defines global CSS rules applied across the page.
-        It sets a dynamic background gradient, resets margins/paddings, 
-        defines the font, and prevents unwanted scrolling.
+        These styles apply to the entire page. They reset margins and paddings, 
+        set a fullscreen gradient background, and ensure that the text is uppercased.
       */
       html,
       body {
@@ -29,10 +28,10 @@
       /* 
         DASHBOARD LAYOUT
         -----------------------------------------------------------------------------
-        The layout divides the page into:
-          - Left section: Scheduled and in-progress bookings.
-          - Right section: Finished bookings with a vertical marquee.
-        A translucent background logo is also centered.
+        The layout consists of two main sections:
+          - Left Section: Displays scheduled and in-progress bookings.
+          - Right Section: Shows finished bookings in a vertical marquee.
+        A translucent background logo is centered behind the content.
       */
       .dashboard-container {
         display: flex;
@@ -68,8 +67,8 @@
       /* 
         BOOKING CARDS
         -----------------------------------------------------------------------------
-        Styles for individual booking cards. Cards display a title, service name,
-        and a progress bar.
+        Each booking card shows a title (booking description), service name, 
+        and an optional progress bar indicating countdown or finished state.
       */
       .booking-card {
         display: flex;
@@ -119,7 +118,8 @@
       /* 
         PROGRESS BARS
         -----------------------------------------------------------------------------
-        Styles for progress bars that visualize booking countdowns or finished states.
+        Designed to show booking countdowns or indicate that a booking has finished.
+        The bar fills as time elapses and displays the estimated time remaining.
       */
       .progress-bar-container {
         position: relative;
@@ -175,7 +175,8 @@
       /* 
         FINISHED BOOKINGS MARQUEE (Vertical)
         -----------------------------------------------------------------------------
-        Displays finished bookings in a vertical scrolling marquee.
+        The right section can display finished bookings in a vertical scrolling
+        marquee. If there are enough finished bookings, the list will animate.
       */
       .marquee-wrapper {
         height: calc(100vh - 80px);
@@ -201,13 +202,9 @@
       /* 
         NEWS MARQUEE (Horizontal)
         -----------------------------------------------------------------------------
-        Creates a horizontal news ticker at the bottom.
-        Developer Note:
-          - Headlines are fetched from NYTimes RSS feeds in round-robin order:
-              MiddleEast, World, Soccer, Business.
-          - A stock ticker element is inserted between every two items.
-          - The stock ticker element uses Unicode triangle characters: ▲ (U+25B2) 
-            for up (colored green) and ▼ (U+25BC) for down (colored red).
+        A horizontal scrolling ticker at the bottom of the screen displays
+        news headlines interleaved with stock ticker data. Rewards messages
+        are inserted periodically.
       */
       .news-marquee {
         width: 100%;
@@ -235,7 +232,8 @@
       /* 
         RESPONSIVE DESIGN
         -----------------------------------------------------------------------------
-        Adjusts layout and styling for devices with smaller screen sizes.
+        The layout adapts for smaller screens by rearranging the sections
+        and resizing the booking cards.
       */
       @media only screen and (max-width: 768px) {
         .dashboard-container {
@@ -278,8 +276,7 @@
     <script crossorigin src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
     <!-- Babel for JSX Transpilation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
-    <!-- Wake Lock Script to prevent the device from sleeping (for Android TV) -->
+    <!-- Wake Lock Script to Prevent Device Sleep -->
     <script>
       let wakeLock = null;
       async function requestWakeLock() {
@@ -313,12 +310,12 @@
     <div id="root"></div>
     <script type="text/babel">
       const { useState, useEffect } = React;
-
-      /*
+      
+      /* 
         HELPER FUNCTION: transformServiceName
         -----------------------------------------------------------------------------
-        Converts a service name to uppercase; if it contains " AND ",
-        returns only the first two words for uniform display.
+        Converts a service name to uppercase. If the service name contains " AND ",
+        it returns only the first two words for a more concise display.
       */
       function transformServiceName(name) {
         if (!name) return "NIL";
@@ -331,10 +328,11 @@
         return upper;
       }
 
-      /*
+      /* 
         COMPONENT: ProgressBar
         -----------------------------------------------------------------------------
-        Displays a countdown timer or a finished state, updating every second.
+        Displays a countdown timer until booking start or finish time.
+        It updates every second to provide a live progress status.
       */
       const ProgressBar = ({ scheduledTime, finishTime }) => {
         const [currentTime, setCurrentTime] = useState(new Date());
@@ -342,12 +340,9 @@
           const timer = setInterval(() => setCurrentTime(new Date()), 1000);
           return () => clearInterval(timer);
         }, []);
-
         const scheduled = scheduledTime instanceof Date ? scheduledTime : new Date(scheduledTime);
         const finish = finishTime instanceof Date ? finishTime : new Date(finishTime);
-
-        if (currentTime.getTime() < scheduled.getTime() &&
-            currentTime.toDateString() !== scheduled.toDateString()) {
+        if (currentTime.getTime() < scheduled.getTime() && currentTime.toDateString() !== scheduled.toDateString()) {
           return (
             <div className="progress-upcoming">
               <div>Booking starts at {scheduled.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
@@ -367,9 +362,7 @@
         }
         if (currentTime.getTime() >= finish.getTime()) {
           return (
-            <div className="progress-finished">
-              Finished
-            </div>
+            <div className="progress-finished">Finished</div>
           );
         }
         const elapsed = currentTime.getTime() - scheduled.getTime();
@@ -389,20 +382,18 @@
         );
       };
 
-      /*
+      /* 
         COMPONENT: BookingCard
         -----------------------------------------------------------------------------
-        Renders an individual booking card with its details and an optional progress bar.
+        Renders an individual booking card, showing booking details and the progress
+        of the booking using the ProgressBar component.
       */
       const BookingCard = ({ booking }) => {
         const bookingDescription = booking.booking_description
           ? booking.booking_description.replace(/\n/g, ' ').trim().toUpperCase()
           : "NIL";
-        const serviceName = booking.service_name
-          ? transformServiceName(booking.service_name)
-          : "NIL";
-        const cardWidth = 250;
-        const cardPadding = 20;
+        const serviceName = booking.service_name ? transformServiceName(booking.service_name) : "NIL";
+        const cardWidth = 250, cardPadding = 20;
         const availableWidth = cardWidth - cardPadding * 2;
         const computedFontSize = Math.min(48, Math.max(24, availableWidth / (bookingDescription.length * 0.6)));
         return (
@@ -411,9 +402,7 @@
               <div className="booking-title" style={{ fontSize: computedFontSize + "px" }}>
                 {bookingDescription}
               </div>
-              <div className="booking-service">
-                {serviceName}
-              </div>
+              <div className="booking-service">{serviceName}</div>
             </div>
             {booking.scheduledTime && booking.finishTime && (
               <ProgressBar scheduledTime={booking.scheduledTime} finishTime={booking.finishTime} />
@@ -422,48 +411,82 @@
         );
       };
 
-      /*
+      /* 
         COMPONENT: ClientDisplay
         -----------------------------------------------------------------------------
-        Main component that:
+        The main component that:
           - Fetches booking data.
-          - Fetches news headlines from NYTimes RSS feeds in round-robin order:
-              MiddleEast, World, Soccer, Business.
-          - Interleaves the headlines with hardcoded stock ticker elements between items.
-          - Inserts a rewards message after every 3 headlines.
+          - Fetches news headlines from NYTimes RSS feeds.
+          - Fetches stock ticker data for specific tickers (NVDA, AAPL, AMZN, MSFT, INTC)
+            and computes daily percentage change using the Polygon previous aggregate endpoint.
+          - Interleaves news headlines, stock ticker data, and rewards messages in a horizontal marquee.
       */
       const ClientDisplay = () => {
         const [bookings, setBookings] = useState([]);
         const [marqueeItems, setMarqueeItems] = useState([]);
+        const [stockTickers, setStockTickers] = useState([]);
 
-        // Hardcoded stock ticker elements using Unicode triangles
-        const stockTickers = [
-          <span key="stock-1" style={{ color: "green" }}>AUD ▲ 0.5%</span>,
-          <span key="stock-2" style={{ color: "red" }}>USD ▼ 0.3%</span>,
-          <span key="stock-3" style={{ color: "green" }}>GBP ▲ 0.7%</span>,
-          <span key="stock-4" style={{ color: "green" }}>S&P500 ▲ 1.2%</span>,
-          <span key="stock-5" style={{ color: "red" }}>AAPL ▼ 0.8%</span>,
-          <span key="stock-6" style={{ color: "green" }}>NVDA ▲ 2.5%</span>,
-          <span key="stock-7" style={{ color: "green" }}>DJIA ▲ 0.9%</span>,
-          <span key="stock-8" style={{ color: "red" }}>NASDAQ ▼ 1.1%</span>,
-          <span key="stock-9" style={{ color: "green" }}>TSLA ▲ 3.0%</span>,
-          <span key="stock-10" style={{ color: "red" }}>EUR ▼ 0.4%</span>,
-          <span key="stock-11" style={{ color: "green" }}>JPY ▲ 0.6%</span>,
-          <span key="stock-12" style={{ color: "red" }}>HKD ▼ 0.2%</span>,
-          <span key="stock-13" style={{ color: "green" }}>FTSE ▲ 0.9%</span>,
-          <span key="stock-14" style={{ color: "red" }}>DAX ▼ 1.5%</span>,
-          <span key="stock-15" style={{ color: "green" }}>CAC ▲ 1.0%</span>,
-          <span key="stock-16" style={{ color: "red" }}>NIKKEI ▼ 0.7%</span>,
-          <span key="stock-17" style={{ color: "green" }}>KOSPI ▲ 0.5%</span>,
-          <span key="stock-18" style={{ color: "red" }}>Russell ▼ 0.8%</span>,
-          <span key="stock-19" style={{ color: "green" }}>USOIL ▲ 2.3%</span>,
-          <span key="stock-20" style={{ color: "red" }}>GOLD ▼ 1.2%</span>,
-        ];
+        // Define the specific ticker symbols required.
+        const tickerSymbols = ["NVDA", "AAPL", "AMZN", "MSFT", "INTC"];
 
-        /*
+        // Function to fetch aggregate change data for a specific ticker.
+        const fetchTickerChange = async (ticker) => {
+          try {
+            const aggRes = await fetch(`https://api.polygon.io/v2/aggs/ticker/${ticker}/prev?apiKey=RhP5_sSeMXR315d0U43Uxuwv5o4Tt5Hp`);
+            const aggData = await aggRes.json();
+            if (aggData.results && aggData.results.length > 0) {
+              const bar = aggData.results[0];
+              const diff = bar.c - bar.o;
+              const percentChange = (diff / bar.o) * 100;
+              return { ticker, percentChange };
+            }
+          } catch (error) {
+            console.error("Error fetching aggregate for", ticker, error);
+          }
+          return { ticker, percentChange: null };
+        };
+
+        // Fetch the specific stock tickers using the provided symbols.
+        const fetchStockTickers = async () => {
+          try {
+            const tickerData = await Promise.all(
+              tickerSymbols.map(symbol => fetchTickerChange(symbol))
+            );
+            const tickerSpans = tickerData.map((item, index) => {
+              if (item.percentChange === null) {
+                return (
+                  <span key={`stock-${index}`} style={{ color: "white", fontWeight: "bold" }}>
+                    {item.ticker} N/A
+                  </span>
+                );
+              } else {
+                const isUp = item.percentChange >= 0;
+                const arrow = isUp ? "▲" : "▼";
+                const color = isUp ? "green" : "red";
+                const formattedPercent = Math.abs(item.percentChange).toFixed(2) + "%";
+                return (
+                  <span key={`stock-${index}`} style={{ color: color, fontWeight: "bold" }}>
+                    {item.ticker} {arrow} {formattedPercent}
+                  </span>
+                );
+              }
+            });
+            setStockTickers(tickerSpans);
+          } catch (error) {
+            console.error("Error fetching stock tickers:", error);
+          }
+        };
+
+        // On component mount, fetch the stock ticker data.
+        useEffect(() => {
+          fetchStockTickers();
+        }, []);
+
+        /* 
           Function: fetchFeedHeadlines
           -----------------------------------------------------------------------------
-          Given an RSS feed URL, fetches and parses the XML to return an array of headline strings.
+          Given an RSS feed URL, this function fetches and parses the XML to return an
+          array of headline strings.
         */
         const fetchFeedHeadlines = async (url) => {
           try {
@@ -475,22 +498,20 @@
             const headlines = [];
             items.forEach(item => {
               const titleEl = item.querySelector("title");
-              if (titleEl) {
-                headlines.push(titleEl.textContent);
-              }
+              if (titleEl) headlines.push(titleEl.textContent);
             });
             return headlines;
           } catch (error) {
-            console.error("Error fetching or parsing RSS feed from", url);
+            console.error("Error fetching/parsing RSS feed from", url);
             return [];
           }
         };
 
-        /*
+        /* 
           Function: fetchNews
           -----------------------------------------------------------------------------
-          Fetches headlines from NYTimes RSS feeds in round-robin order:
-              MiddleEast, World, Soccer, Business.
+          Fetches headlines from multiple NYTimes RSS feeds and orders them in round-robin order.
+          If no headlines are found, returns a default breaking news message.
         */
         const fetchNews = async () => {
           const feeds = [
@@ -502,9 +523,13 @@
           const soccerHeadlines = await fetchFeedHeadlines(feeds[1].url);
           const businessHeadlines = await fetchFeedHeadlines(feeds[2].url);
           const worldHeadlines = await fetchFeedHeadlines("https://rss.nytimes.com/services/xml/rss/nyt/World.xml");
-
           let orderedHeadlines = [];
-          const maxLength = Math.max(middleEastHeadlines.length, worldHeadlines.length, soccerHeadlines.length, businessHeadlines.length);
+          const maxLength = Math.max(
+            middleEastHeadlines.length, 
+            worldHeadlines.length, 
+            soccerHeadlines.length, 
+            businessHeadlines.length
+          );
           for (let i = 0; i < maxLength; i++) {
             if (middleEastHeadlines[i]) orderedHeadlines.push(middleEastHeadlines[i]);
             if (worldHeadlines[i]) orderedHeadlines.push(worldHeadlines[i]);
@@ -514,14 +539,11 @@
           return orderedHeadlines.length > 0 ? orderedHeadlines : ["Breaking News: No Articles Available"];
         };
 
-        /*
+        /* 
           Function: updateMarqueeItems
           -----------------------------------------------------------------------------
-          Fetches news headlines and creates a sequence of React span elements,
-          interleaving:
-            - A news article.
-            - A stock ticker element between items.
-            - Inserts the "ASK US ABOUT OUR REWARDS PROGRAM" message after every 3 headlines.
+          This function interleaves news headlines with stock ticker elements and inserts
+          a rewards message after every three headlines. The combined items are then set into state.
         */
         const updateMarqueeItems = async () => {
           const headlines = await fetchNews();
@@ -533,7 +555,9 @@
             if (i < headlines.length - 1) {
               combined.push(
                 <span key={`ticker-${i}`}>
-                  {stockTickers[stockTickerIndex % stockTickers.length]}
+                  {stockTickers.length > 0 
+                    ? stockTickers[stockTickerIndex % stockTickers.length] 
+                    : <span style={{ color: "white" }}>STOCK</span>}
                 </span>
               );
               stockTickerIndex++;
@@ -543,7 +567,9 @@
               if (i < headlines.length - 1) {
                 combined.push(
                   <span key={`ticker-r-${i}`}>
-                    {stockTickers[stockTickerIndex % stockTickers.length]}
+                    {stockTickers.length > 0 
+                      ? stockTickers[stockTickerIndex % stockTickers.length] 
+                      : <span style={{ color: "white" }}>STOCK</span>}
                   </span>
                 );
                 stockTickerIndex++;
@@ -553,16 +579,18 @@
           setMarqueeItems(combined);
         };
 
-        // Fetch news headlines when the component mounts.
+        // Update the marquee items every time the stock ticker data changes.
         useEffect(() => {
           updateMarqueeItems();
-        }, []);
+        }, [stockTickers]);
 
-        /*
+        /* 
           Function: fetchBookings
           -----------------------------------------------------------------------------
-          Fetches booking records from an API endpoint, processes them, filters out cancelled bookings,
-          groups them by their hash, and retains only the latest update.
+          Fetches booking records from the provided API endpoint and processes them:
+            - Parses booking dates and times.
+            - Filters out cancelled bookings.
+            - Groups bookings by hash and retains the latest update from each group.
         */
         const fetchBookings = () => {
           fetch("https://silent-papers-unite.loca.lt/bookings")
@@ -585,8 +613,7 @@
                 const group = bookingsByHash[hash];
                 if (group.some(b => b.booking_status === "Cancelled")) return;
                 const latestBooking = group.reduce((prev, curr) =>
-                  new Date(curr.booking_updated_at || curr.booking_created_at) >
-                  new Date(prev.booking_updated_at || prev.booking_created_at)
+                  new Date(curr.booking_updated_at || curr.booking_created_at) > new Date(prev.booking_updated_at || prev.booking_created_at)
                     ? curr
                     : prev,
                   group[0]
@@ -598,22 +625,19 @@
             .catch(error => console.error("Error fetching bookings:", error));
         };
 
-        // Fetch bookings on mount and every 60 seconds.
+        // Fetch bookings on mount and then every 60 seconds.
         useEffect(() => {
           fetchBookings();
           const interval = setInterval(fetchBookings, 60000);
           return () => clearInterval(interval);
         }, []);
 
-        // Categorize bookings.
+        // Categorize bookings into scheduled, in-progress, and finished for display.
         const now = new Date();
-        const scheduledBookings = bookings.filter(
-          booking => booking.scheduledTime.getTime() > now.getTime()
-        );
-        const inProgressBookings = bookings.filter(
-          booking =>
-            now.getTime() >= booking.scheduledTime.getTime() &&
-            now.getTime() < booking.finishTime.getTime()
+        const scheduledBookings = bookings.filter(booking => booking.scheduledTime.getTime() > now.getTime());
+        const inProgressBookings = bookings.filter(booking =>
+          now.getTime() >= booking.scheduledTime.getTime() &&
+          now.getTime() < booking.finishTime.getTime()
         );
         const finishedBookings = bookings.filter(booking => {
           const finishedTime = booking.finishTime.getTime();
@@ -625,15 +649,9 @@
         return (
           <div>
             <div className="dashboard-container">
-              <img
-                src="https://files.catbox.moe/4y7toq.png"
-                alt="Logo"
-                className="dashboard-logo"
-              />
+              <img src="https://files.catbox.moe/4y7toq.png" alt="Logo" className="dashboard-logo" />
               <div className="left-section">
-                <h2 className="progress-heading heading">
-                  SCHEDULED &amp; IN PROGRESS BOOKINGS
-                </h2>
+                <h2 className="progress-heading heading">SCHEDULED &amp; IN PROGRESS BOOKINGS</h2>
                 <div className="booking-grid">
                   {scheduledBookings.length === 0 && inProgressBookings.length === 0 ? (
                     <p className="no-bookings">NO UPCOMING OR ACTIVE BOOKINGS AVAILABLE</p>
@@ -682,7 +700,6 @@
         );
       };
 
-      // Render the ClientDisplay component into the root element.
       ReactDOM.render(<ClientDisplay />, document.getElementById("root"));
     </script>
   </body>
