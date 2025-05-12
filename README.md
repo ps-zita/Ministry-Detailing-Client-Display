@@ -1,5 +1,7 @@
 # Ministry Detailing Client Display
 
+![](gif.gif)
+
 This project is created for Ministry of Detailing to enhance the client experience by providing a real-time booking display system and a simple API server to manage booking data. The system is designed to run on a monitor at the front of the store, allowing clients to view the progress of their bookings in real-time. It also includes an API server that uses a JSON file for storage, enabling easy integration with webhooks and other systems to manage booking data.
 
 The dashboard shows scheduled, in-progress, and recently finished bookings, letting clients easily track their appointments. In addition, the client display now features a dynamic horizontal marquee at the bottom of the screen. This marquee continuously scrolls live news headlines fetched from various New York Times RSS feeds (MiddleEast, World, Soccer, Business) and live stock ticker elements. The stock tickers are retrieved via the Alpha Vantage API using the provided API key and display key financial instruments and indices with Unicode triangle indicators (▲ for up in green, ▼ for down in red). A fixed rewards message ("ASK US ABOUT OUR REWARDS PROGRAM") is also interleaved periodically, ensuring that the marquee adds an extra layer of engaging real-time information.
