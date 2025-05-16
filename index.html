@@ -593,7 +593,7 @@
             - Groups bookings by hash and retains the latest update from each group.
         */
         const fetchBookings = () => {
-          fetch("https://silent-papers-unite.loca.lt/bookings")
+          fetch("http://mnstry.duckdns.org:3001/bookings")
             .then(response => response.json())
             .then(data => {
               const processedBookings = data.map(booking => {
