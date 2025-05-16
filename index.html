@@ -1,706 +1,104 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>BOOKINGS DASHBOARD with News Marquee</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <style>
-      /* 
-        GLOBAL STYLES
-        -----------------------------------------------------------------------------
-        These styles apply to the entire page. They reset margins and paddings, 
-        set a fullscreen gradient background, and ensure that the text is uppercased.
-      */
-      html,
-      body {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-        font-family: Arial, sans-serif;
-        overflow: hidden;
-        background: linear-gradient(90deg, #0f0c29, #302b63, #24243e);
-        text-transform: uppercase;
-      }
-      #root {
-        min-height: 100%;
-      }
-      
-      /* 
-        DASHBOARD LAYOUT
-        -----------------------------------------------------------------------------
-        The layout consists of two main sections:
-          - Left Section: Displays scheduled and in-progress bookings.
-          - Right Section: Shows finished bookings in a vertical marquee.
-        A translucent background logo is centered behind the content.
-      */
-      .dashboard-container {
-        display: flex;
-        min-height: 100vh;
-        position: relative;
-        padding-bottom: 60px; /* Reserved space for the horizontal news marquee */
-      }
-      .left-section {
-        flex: 4;
-        padding: 20px;
-        overflow-y: auto;
-        position: relative;
-        z-index: 1000;
-      }
-      .right-section {
-        flex: 1;
-        padding: 20px;
-        border-left: 2px solid white;
-        position: relative;
-        z-index: 1000;
-      }
-      .dashboard-logo {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 50%;
-        height: auto;
-        z-index: 900;
-        opacity: 0.1;
-      }
-      
-      /* 
-        BOOKING CARDS
-        -----------------------------------------------------------------------------
-        Each booking card shows a title (booking description), service name, 
-        and an optional progress bar indicating countdown or finished state.
-      */
-      .booking-card {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        background: linear-gradient(45deg, #624a2e, #4f2e1e);
-        border-radius: 12px;
-        padding: 20px;
-        margin: 20px;
-        width: 250px;
-        font-size: 22px;
-        position: relative;
-        box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.9);
-        border: 1px solid #d4a373;
-        z-index: 1000;
-      }
-      .booking-details {
-        margin-bottom: 10px;
-      }
-      .booking-title {
-        font-weight: bold;
-        margin-bottom: 10px;
-        color: black;
-        line-height: 1.2;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .booking-service {
-        margin-bottom: 10px;
-        color: black;
-      }
-      .heading {
-        font-size: 28px;
-        margin-bottom: 20px;
-        color: white;
-      }
-      .booking-grid {
-        display: flex;
-        flex-wrap: wrap;
-      }
-      .no-bookings {
-        color: white;
-        font-size: 24px;
-      }
-      
-      /* 
-        PROGRESS BARS
-        -----------------------------------------------------------------------------
-        Designed to show booking countdowns or indicate that a booking has finished.
-        The bar fills as time elapses and displays the estimated time remaining.
-      */
-      .progress-bar-container {
-        position: relative;
-        background: #eee;
-        border-radius: 4px;
-        width: 100%;
-        height: 30px;
-        margin-top: auto;
-        overflow: hidden;
-      }
-      .progress-bar {
-        background: linear-gradient(90deg, #d4a373, #c78642);
-        border-radius: 4px;
-        height: 100%;
-        transition: width 1s linear;
-      }
-      .progress-bar-text {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        text-align: center;
-        line-height: 30px;
-        font-size: 22px;
-        color: #333;
-      }
-      .progress-upcoming {
-        background: #eee;
-        border-radius: 4px;
-        width: 100%;
-        height: 40px;
-        margin-top: auto;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        color: #888;
-        font-size: 16px;
-      }
-      .progress-finished {
-        background: #ccc;
-        border-radius: 4px;
-        width: 100%;
-        height: 30px;
-        margin-top: auto;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #333;
-        font-size: 22px;
-      }
-      
-      /* 
-        FINISHED BOOKINGS MARQUEE (Vertical)
-        -----------------------------------------------------------------------------
-        The right section can display finished bookings in a vertical scrolling
-        marquee. If there are enough finished bookings, the list will animate.
-      */
-      .marquee-wrapper {
-        height: calc(100vh - 80px);
-        overflow: hidden;
-        position: relative;
-      }
-      .marquee-container {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-        animation: marquee 10s linear infinite;
-      }
-      @keyframes marquee {
-        0% { transform: translateY(0); }
-        100% { transform: translateY(-50%); }
-      }
-      .marquee-container-static {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-      }
-      
-      /* 
-        NEWS MARQUEE (Horizontal)
-        -----------------------------------------------------------------------------
-        A horizontal scrolling ticker at the bottom of the screen displays
-        news headlines interleaved with stock ticker data. Rewards messages
-        are inserted periodically.
-      */
-      .news-marquee {
-        width: 100%;
-        background-color: black;
-        color: white;
-        overflow: hidden;
-        white-space: nowrap;
-        position: fixed;
-        bottom: 0;
-        padding: 10px 0;
-        z-index: 1100;
-      }
-      .news-marquee-content {
-        display: inline-block;
-        white-space: nowrap;
-      }
-      .animate {
-        animation: marqueeText 1000s linear infinite;
-      }
-      @keyframes marqueeText {
-        0% { transform: translateX(0%); }
-        100% { transform: translateX(-50%); }
-      }
-      
-      /* 
-        RESPONSIVE DESIGN
-        -----------------------------------------------------------------------------
-        The layout adapts for smaller screens by rearranging the sections
-        and resizing the booking cards.
-      */
-      @media only screen and (max-width: 768px) {
-        .dashboard-container {
-          flex-direction: column;
-          overflow: auto;
-          min-height: auto;
-        }
-        #root { height: 140%; }
-        .dashboard-logo {
-          position: static;
-          transform: none;
-          width: 80%;
-          margin: 20px auto;
-          display: block;
-        }
-        .booking-card {
-          width: 70vw;
-          margin: 10px auto;
-        }
-        .left-section,
-        .right-section {
-          border: none;
-          width: 100%;
-          padding: 0;
-        }
-        .left-section {
-          display: flex;
-          flex-wrap: wrap;
-          justify-content: center;
-          align-items: flex-start;
-        }
-        .right-section { display: contents; }
-        .progress-heading,
-        .finished-heading,
-        .no-bookings { display: none; }
-      }
-    </style>
-    <!-- Include React and ReactDOM Libraries -->
-    <script crossorigin src="https://unpkg.com/react@17/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
-    <!-- Babel for JSX Transpilation -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Wake Lock Script to Prevent Device Sleep -->
-    <script>
-      let wakeLock = null;
-      async function requestWakeLock() {
-        try {
-          if ("wakeLock" in navigator) {
-            wakeLock = await navigator.wakeLock.request('screen');
-            console.log('Wake Lock is active!');
-            wakeLock.addEventListener('release', () => {
-              console.log('Wake Lock was released');
-            });
-          } else {
-            console.warn("Wake Lock API not supported on this device.");
-          }
-        } catch (err) {
-          console.error(`Unable to obtain wake lock: ${err}`);
-        }
-      }
-      document.addEventListener('visibilitychange', async () => {
-        if (document.visibilityState === 'visible') {
-          await requestWakeLock();
-        } else if (wakeLock !== null) {
-          wakeLock.release();
-          wakeLock = null;
-        }
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Book a Service</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+    .service-button { padding: 10px; margin: 5px; cursor: pointer; border: 1px solid #ccc; border-radius: 5px; }
+    .selected { background: #4caf50; color: white; }
+    input, button { padding: 10px; margin: 10px; width: 80%; }
+    button { background: #4caf50; color: white; border: none; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <h1>Book Your Service</h1>
+  
+  <h2>Select a Service:</h2>
+  <div id="serviceList"></div>
+
+  <form id="bookingForm">
+    <input type="text" id="customerName" placeholder="Full Name" required>
+    <input type="text" id="customerPhone" placeholder="Phone Number" required>
+    <input type="datetime-local" id="reservedOn" required>
+    <button type="button" onclick="submitBooking()">Book Now</button>
+  </form>
+
+  <p id="status"></p>
+
+  <script>
+    const services = [
+      { uuid: "b7c4edf5-d736-44ca-8714-c0de2a4aa53a", name: "Premium Interior Sedan and Hatch", price: "A$110.00" },
+      { uuid: "54b60514-9521-4395-96ae-712b4585983b", name: "Premium Interior Small SUV", price: "A$120.00" },
+      { uuid: "6ecb4ffb-c11c-4825-aedc-f1be2307c4eb", name: "Premium Interior LRG SUV", price: "A$130.00" },
+      { uuid: "d584bda5-5d06-46ac-bbd0-4cb0071478f6", name: "Premium Max Sedan and Hatch", price: "A$180.00" },
+      { uuid: "59920ac8-f6a3-40b2-9e1f-aab7a665208a", name: "Premium max Small SUV", price: "A$190.00" },
+      { uuid: "a36dc87d-798e-4ad5-af3d-5d44bbea0da1", name: "Ceramic Coating", price: "A$1,499.00" },
+      { uuid: "39c7b9a1-e1c7-48f8-958f-238e3b2cbee6", name: "Gold Wash Small SUV And Wagons", price: "A$75.00" }
+    ];
+
+    let selectedService = null;
+
+    function populateServices() {
+      const serviceList = document.getElementById("serviceList");
+      services.forEach(service => {
+        const button = document.createElement("button");
+        button.innerText = `${service.name} - ${service.price}`;
+        button.classList.add("service-button");
+        button.onclick = () => {
+          document.querySelectorAll(".service-button").forEach(btn => btn.classList.remove("selected"));
+          button.classList.add("selected");
+          selectedService = service.uuid;
+        };
+        serviceList.appendChild(button);
       });
-      // Request the wake lock on page load.
-      requestWakeLock();
-    </script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="text/babel">
-      const { useState, useEffect } = React;
-      
-      /* 
-        HELPER FUNCTION: transformServiceName
-        -----------------------------------------------------------------------------
-        Converts a service name to uppercase. If the service name contains " AND ",
-        it returns only the first two words for a more concise display.
-      */
-      function transformServiceName(name) {
-        if (!name) return "NIL";
-        let upper = name.toUpperCase();
-        if (upper.includes(" AND ")) {
-          let beforeAnd = upper.split(" AND ")[0];
-          let words = beforeAnd.split(" ");
-          return words.length > 2 ? words.slice(0, 2).join(" ") : beforeAnd;
-        }
-        return upper;
+    }
+
+    function convertToUTC(dateTimeLocal) {
+      const localDate = new Date(dateTimeLocal);
+      return localDate.toISOString().replace(/\.\d+Z$/, "Z"); // Removes milliseconds to match ISO 8601 format
+    }
+
+    async function submitBooking() {
+      if (!selectedService) {
+        alert("Please select a service!");
+        return;
       }
 
-      /* 
-        COMPONENT: ProgressBar
-        -----------------------------------------------------------------------------
-        Displays a countdown timer until booking start or finish time.
-        It updates every second to provide a live progress status.
-      */
-      const ProgressBar = ({ scheduledTime, finishTime }) => {
-        const [currentTime, setCurrentTime] = useState(new Date());
-        useEffect(() => {
-          const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-          return () => clearInterval(timer);
-        }, []);
-        const scheduled = scheduledTime instanceof Date ? scheduledTime : new Date(scheduledTime);
-        const finish = finishTime instanceof Date ? finishTime : new Date(finishTime);
-        if (currentTime.getTime() < scheduled.getTime() && currentTime.toDateString() !== scheduled.toDateString()) {
-          return (
-            <div className="progress-upcoming">
-              <div>Booking starts at {scheduled.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-            </div>
-          );
-        }
-        if (currentTime.getTime() < scheduled.getTime()) {
-          const untilMs = scheduled.getTime() - currentTime.getTime();
-          const untilMinutes = Math.floor(untilMs / 60000);
-          const untilSeconds = ('0' + Math.floor((untilMs % 60000) / 1000)).slice(-2);
-          return (
-            <div className="progress-upcoming">
-              <div>Booking starts at {scheduled.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-              <div>Starts in: {untilMinutes}m {untilSeconds}s</div>
-            </div>
-          );
-        }
-        if (currentTime.getTime() >= finish.getTime()) {
-          return (
-            <div className="progress-finished">Finished</div>
-          );
-        }
-        const elapsed = currentTime.getTime() - scheduled.getTime();
-        const totalDuration = finish.getTime() - scheduled.getTime();
-        let progressPercentage = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
-        progressPercentage = Math.min(Math.max(progressPercentage, 0), 100);
-        const remainingMS = finish.getTime() - currentTime.getTime();
-        const remainingMinutes = Math.floor(remainingMS / 60000);
-        const remainingSeconds = ('0' + Math.floor((remainingMS % 60000) / 1000)).slice(-2);
-        return (
-          <div className="progress-bar-container">
-            <div className="progress-bar" style={{ width: `${progressPercentage}%` }} />
-            <div className="progress-bar-text">
-              ETA: {remainingMinutes}m {remainingSeconds}s
-            </div>
-          </div>
-        );
+      const reservedOnLocal = document.getElementById("reservedOn").value;
+      if (!reservedOnLocal) {
+        alert("Please select a valid date and time!");
+        return;
+      }
+
+      const bookingData = {
+        location_uuid: "47191ab9-1611-4468-a49c-efcd4ee1109f",
+        service_uuid: selectedService,
+        reserved_on: convertToUTC(reservedOnLocal),
+        customer_phone: document.getElementById("customerPhone").value,
+        customer_first_name: document.getElementById("customerName").value
       };
 
-      /* 
-        COMPONENT: BookingCard
-        -----------------------------------------------------------------------------
-        Renders an individual booking card, showing booking details and the progress
-        of the booking using the ProgressBar component.
-      */
-      const BookingCard = ({ booking }) => {
-        const bookingDescription = booking.booking_description
-          ? booking.booking_description.replace(/\n/g, ' ').trim().toUpperCase()
-          : "NIL";
-        const serviceName = booking.service_name ? transformServiceName(booking.service_name) : "NIL";
-        const cardWidth = 250, cardPadding = 20;
-        const availableWidth = cardWidth - cardPadding * 2;
-        const computedFontSize = Math.min(48, Math.max(24, availableWidth / (bookingDescription.length * 0.6)));
-        return (
-          <div className="booking-card">
-            <div className="booking-details">
-              <div className="booking-title" style={{ fontSize: computedFontSize + "px" }}>
-                {bookingDescription}
-              </div>
-              <div className="booking-service">{serviceName}</div>
-            </div>
-            {booking.scheduledTime && booking.finishTime && (
-              <ProgressBar scheduledTime={booking.scheduledTime} finishTime={booking.finishTime} />
-            )}
-          </div>
-        );
-      };
-
-      /* 
-        COMPONENT: ClientDisplay
-        -----------------------------------------------------------------------------
-        The main component that:
-          - Fetches booking data.
-          - Fetches news headlines from NYTimes RSS feeds.
-          - Fetches stock ticker data for specific tickers (NVDA, AAPL, AMZN, MSFT, INTC)
-            and computes daily percentage change using the Polygon previous aggregate endpoint.
-          - Interleaves news headlines, stock ticker data, and rewards messages in a horizontal marquee.
-      */
-      const ClientDisplay = () => {
-        const [bookings, setBookings] = useState([]);
-        const [marqueeItems, setMarqueeItems] = useState([]);
-        const [stockTickers, setStockTickers] = useState([]);
-
-        // Define the specific ticker symbols required.
-        const tickerSymbols = ["NVDA", "AAPL", "AMZN", "MSFT", "INTC"];
-
-        // Function to fetch aggregate change data for a specific ticker.
-        const fetchTickerChange = async (ticker) => {
-          try {
-            const aggRes = await fetch(`https://api.polygon.io/v2/aggs/ticker/${ticker}/prev?apiKey=RhP5_sSeMXR315d0U43Uxuwv5o4Tt5Hp`);
-            const aggData = await aggRes.json();
-            if (aggData.results && aggData.results.length > 0) {
-              const bar = aggData.results[0];
-              const diff = bar.c - bar.o;
-              const percentChange = (diff / bar.o) * 100;
-              return { ticker, percentChange };
-            }
-          } catch (error) {
-            console.error("Error fetching aggregate for", ticker, error);
-          }
-          return { ticker, percentChange: null };
-        };
-
-        // Fetch the specific stock tickers using the provided symbols.
-        const fetchStockTickers = async () => {
-          try {
-            const tickerData = await Promise.all(
-              tickerSymbols.map(symbol => fetchTickerChange(symbol))
-            );
-            const tickerSpans = tickerData.map((item, index) => {
-              if (item.percentChange === null) {
-                return (
-                  <span key={`stock-${index}`} style={{ color: "white", fontWeight: "bold" }}>
-                    {item.ticker} N/A
-                  </span>
-                );
-              } else {
-                const isUp = item.percentChange >= 0;
-                const arrow = isUp ? "▲" : "▼";
-                const color = isUp ? "green" : "red";
-                const formattedPercent = Math.abs(item.percentChange).toFixed(2) + "%";
-                return (
-                  <span key={`stock-${index}`} style={{ color: color, fontWeight: "bold" }}>
-                    {item.ticker} {arrow} {formattedPercent}
-                  </span>
-                );
-              }
-            });
-            setStockTickers(tickerSpans);
-          } catch (error) {
-            console.error("Error fetching stock tickers:", error);
-          }
-        };
-
-        // On component mount, fetch the stock ticker data.
-        useEffect(() => {
-          fetchStockTickers();
-        }, []);
-
-        /* 
-          Function: fetchFeedHeadlines
-          -----------------------------------------------------------------------------
-          Given an RSS feed URL, this function fetches and parses the XML to return an
-          array of headline strings.
-        */
-        const fetchFeedHeadlines = async (url) => {
-          try {
-            const response = await fetch(url);
-            const text = await response.text();
-            const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(text, "application/xml");
-            const items = xmlDoc.querySelectorAll("item");
-            const headlines = [];
-            items.forEach(item => {
-              const titleEl = item.querySelector("title");
-              if (titleEl) headlines.push(titleEl.textContent);
-            });
-            return headlines;
-          } catch (error) {
-            console.error("Error fetching/parsing RSS feed from", url);
-            return [];
-          }
-        };
-
-        /* 
-          Function: fetchNews
-          -----------------------------------------------------------------------------
-          Fetches headlines from multiple NYTimes RSS feeds and orders them in round-robin order.
-          If no headlines are found, returns a default breaking news message.
-        */
-        const fetchNews = async () => {
-          const feeds = [
-            { name: "MiddleEast", url: "https://rss.nytimes.com/services/xml/rss/nyt/MiddleEast.xml" },
-            { name: "Soccer", url: "https://rss.nytimes.com/services/xml/rss/nyt/Soccer.xml" },
-            { name: "Business", url: "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml" }
-          ];
-          const middleEastHeadlines = await fetchFeedHeadlines(feeds[0].url);
-          const soccerHeadlines = await fetchFeedHeadlines(feeds[1].url);
-          const businessHeadlines = await fetchFeedHeadlines(feeds[2].url);
-          const worldHeadlines = await fetchFeedHeadlines("https://rss.nytimes.com/services/xml/rss/nyt/World.xml");
-          let orderedHeadlines = [];
-          const maxLength = Math.max(
-            middleEastHeadlines.length, 
-            worldHeadlines.length, 
-            soccerHeadlines.length, 
-            businessHeadlines.length
-          );
-          for (let i = 0; i < maxLength; i++) {
-            if (middleEastHeadlines[i]) orderedHeadlines.push(middleEastHeadlines[i]);
-            if (worldHeadlines[i]) orderedHeadlines.push(worldHeadlines[i]);
-            if (soccerHeadlines[i]) orderedHeadlines.push(soccerHeadlines[i]);
-            if (businessHeadlines[i]) orderedHeadlines.push(businessHeadlines[i]);
-          }
-          return orderedHeadlines.length > 0 ? orderedHeadlines : ["Breaking News: No Articles Available"];
-        };
-
-        /* 
-          Function: updateMarqueeItems
-          -----------------------------------------------------------------------------
-          This function interleaves news headlines with stock ticker elements and inserts
-          a rewards message after every three headlines. The combined items are then set into state.
-        */
-        const updateMarqueeItems = async () => {
-          const headlines = await fetchNews();
-          const rewardsMessage = <span key="rewards">ASK US ABOUT OUR REWARDS PROGRAM</span>;
-          let combined = [];
-          let stockTickerIndex = 0;
-          for (let i = 0; i < headlines.length; i++) {
-            combined.push(<span key={`news-${i}`}>{headlines[i]}</span>);
-            if (i < headlines.length - 1) {
-              combined.push(
-                <span key={`ticker-${i}`}>
-                  {stockTickers.length > 0 
-                    ? stockTickers[stockTickerIndex % stockTickers.length] 
-                    : <span style={{ color: "white" }}>STOCK</span>}
-                </span>
-              );
-              stockTickerIndex++;
-            }
-            if ((i + 1) % 3 === 0) {
-              combined.push(<span key={`rewards-${i}`}>{rewardsMessage}</span>);
-              if (i < headlines.length - 1) {
-                combined.push(
-                  <span key={`ticker-r-${i}`}>
-                    {stockTickers.length > 0 
-                      ? stockTickers[stockTickerIndex % stockTickers.length] 
-                      : <span style={{ color: "white" }}>STOCK</span>}
-                  </span>
-                );
-                stockTickerIndex++;
-              }
-            }
-          }
-          setMarqueeItems(combined);
-        };
-
-        // Update the marquee items every time the stock ticker data changes.
-        useEffect(() => {
-          updateMarqueeItems();
-        }, [stockTickers]);
-
-        /* 
-          Function: fetchBookings
-          -----------------------------------------------------------------------------
-          Fetches booking records from the provided API endpoint and processes them:
-            - Parses booking dates and times.
-            - Filters out cancelled bookings.
-            - Groups bookings by hash and retains the latest update from each group.
-        */
-        const fetchBookings = () => {
-          fetch("https://mnstry.duckdns.org:3001/bookings")
-            .then(response => response.json())
-            .then(data => {
-              const processedBookings = data.map(booking => {
-                const scheduled = new Date(booking.booking_date_start_tz);
-                const durationMs = parseInt(booking.booking_duration, 10) * 60000;
-                const finish = new Date(scheduled.getTime() + durationMs);
-                return { ...booking, scheduledTime: scheduled, finishTime: finish };
-              });
-              const bookingsByHash = {};
-              processedBookings.forEach(booking => {
-                const hash = booking.booking_hash_id;
-                if (!bookingsByHash[hash]) bookingsByHash[hash] = [];
-                bookingsByHash[hash].push(booking);
-              });
-              const filteredBookings = [];
-              Object.keys(bookingsByHash).forEach(hash => {
-                const group = bookingsByHash[hash];
-                if (group.some(b => b.booking_status === "Cancelled")) return;
-                const latestBooking = group.reduce((prev, curr) =>
-                  new Date(curr.booking_updated_at || curr.booking_created_at) > new Date(prev.booking_updated_at || prev.booking_created_at)
-                    ? curr
-                    : prev,
-                  group[0]
-                );
-                filteredBookings.push(latestBooking);
-              });
-              setBookings(filteredBookings);
-            })
-            .catch(error => console.error("Error fetching bookings:", error));
-        };
-
-        // Fetch bookings on mount and then every 60 seconds.
-        useEffect(() => {
-          fetchBookings();
-          const interval = setInterval(fetchBookings, 60000);
-          return () => clearInterval(interval);
-        }, []);
-
-        // Categorize bookings into scheduled, in-progress, and finished for display.
-        const now = new Date();
-        const scheduledBookings = bookings.filter(booking => booking.scheduledTime.getTime() > now.getTime());
-        const inProgressBookings = bookings.filter(booking =>
-          now.getTime() >= booking.scheduledTime.getTime() &&
-          now.getTime() < booking.finishTime.getTime()
-        );
-        const finishedBookings = bookings.filter(booking => {
-          const finishedTime = booking.finishTime.getTime();
-          const fourHoursAfter = finishedTime + 14400000;
-          return now.getTime() >= finishedTime && now.getTime() <= fourHoursAfter;
+      try {
+        // Update the URL to use HTTPS along with your DuckDNS domain on port 3001.
+        const response = await fetch("https://mnstry.duckdns.org:3001/book", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(bookingData)
         });
-        const useMarquee = finishedBookings.length >= 4;
 
-        return (
-          <div>
-            <div className="dashboard-container">
-              <img src="https://files.catbox.moe/4y7toq.png" alt="Logo" className="dashboard-logo" />
-              <div className="left-section">
-                <h2 className="progress-heading heading">SCHEDULED &amp; IN PROGRESS BOOKINGS</h2>
-                <div className="booking-grid">
-                  {scheduledBookings.length === 0 && inProgressBookings.length === 0 ? (
-                    <p className="no-bookings">NO UPCOMING OR ACTIVE BOOKINGS AVAILABLE</p>
-                  ) : (
-                    [...scheduledBookings, ...inProgressBookings].map(booking => (
-                      <BookingCard key={booking.booking_hash_id} booking={booking} />
-                    ))
-                  )}
-                </div>
-              </div>
-              <div className="right-section">
-                <h2 className="finished-heading heading">FINISHED BOOKINGS</h2>
-                <div className="marquee-wrapper">
-                  {useMarquee ? (
-                    <div className="marquee-container">
-                      {finishedBookings.map(booking => (
-                        <BookingCard key={booking.booking_hash_id} booking={booking} />
-                      ))}
-                      {finishedBookings.map(booking => (
-                        <BookingCard key={booking.booking_hash_id + "_dup"} booking={booking} />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="marquee-container-static">
-                      {finishedBookings.map(booking => (
-                        <BookingCard key={booking.booking_hash_id} booking={booking} />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-            <div className="news-marquee">
-              <div className="news-marquee-content animate">
-                {marqueeItems.length > 0
-                  ? marqueeItems.map((item, index) => (
-                      <React.Fragment key={index}>
-                        {item}
-                        {index < marqueeItems.length - 1 && <span> • </span>}
-                      </React.Fragment>
-                    ))
-                  : "LOADING MARQUEE DATA..."}
-              </div>
-            </div>
-          </div>
-        );
-      };
+        const result = await response.json();
+        document.getElementById("status").innerText = result.message || "Booking created!";
+      } catch (error) {
+        console.error("Error creating booking:", error);
+        document.getElementById("status").innerText = "Booking failed.";
+      }
+    }
 
-      ReactDOM.render(<ClientDisplay />, document.getElementById("root"));
-    </script>
-  </body>
+    populateServices();
+  </script>
+
+</body>
 </html>
