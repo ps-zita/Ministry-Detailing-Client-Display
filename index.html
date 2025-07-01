@@ -270,6 +270,7 @@
           wakeLock = null;
         }
       });
+      // Request the wake lock on page load.
       requestWakeLock();
     </script>
   </head>
@@ -279,14 +280,8 @@
       const { useState, useEffect } = React;
       
       function transformServiceName(name) {
-        if (!name) return "NIL";
-        let upper = name.toUpperCase();
-        if (upper.includes(" AND ")) {
-          let beforeAnd = upper.split(" AND ")[0];
-          let words = beforeAnd.split(" ");
-          return words.length > 2 ? words.slice(0, 2).join(" ") : beforeAnd;
-        }
-        return upper;
+        // Unused in this revision since we're displaying the service name directly
+        return name ? name.toUpperCase() : "NIL";
       }
       
       const ProgressBar = ({ scheduledTime, finishTime }) => {
@@ -336,35 +331,52 @@
           </div>
         );
       };
-
+      
       const BookingCard = ({ booking }) => {
-        // Updated extraction: we only show the car name and add-on details.
-        let carInfo = "NIL";
-        let addonInfo = "";
+        // Expected sample description:
+        // "BASIC WASH [ONLINE] - $25.00 | Addon Prices: Headlight Restoration: $80.00"
+        let washName = "NIL";
+        let addonDesc = "";
         if (booking.booking_description) {
-          // Split on " - "
-          const parts = booking.booking_description.split(" - ");
-          if (parts.length > 0) {
-            carInfo = parts[0].trim();
+          // Split into parts on the pipe separator.
+          const parts = booking.booking_description.split(" | ");
+          // Always use the first part for the wash name.
+          let washPart = parts[0].trim();
+          if (washPart.includes(" - ")) {
+            washName = washPart.split(" - ")[0].trim();
+          } else {
+            washName = washPart;
           }
-          // Look for add-on information that starts with "Addon Prices:"
-          parts.forEach(part => {
-            if (part.toLowerCase().includes("addon prices:")) {
-              addonInfo = part.split("addon prices:")[1].trim();
+          // Remove any bracketed qualifiers (e.g., [ONLINE]) from the wash name.
+          washName = washName.replace(/\[.*?\]/g, "").trim();
+          
+          // If an addon part exists, extract the addon description.
+          if (parts.length > 1) {
+            let addonPart = parts[1].trim();
+            if (addonPart.startsWith("Addon Prices:")) {
+              let temp = addonPart.substring("Addon Prices:".length).trim();
+              if (temp.includes(":")) {
+                addonDesc = temp.split(":")[0].trim();
+              } else {
+                addonDesc = temp;
+              }
             }
-          });
+          }
         }
-        const computedFontSize = Math.min(48, Math.max(24, (250 - 40) / (carInfo.length * 0.6)));
-        const serviceName = booking.service_name ? transformServiceName(booking.service_name) : "NIL";
+        const computedFontSize = Math.min(48, Math.max(24, (250 - 40) / (washName.length * 0.6)));
+        
+        // Display the service name exactly as provided by the booking object.
+        // If booking.service_name exists, it will be shown; otherwise, it defaults to "NIL".
+        const displayedService = booking.service_name ? booking.service_name : "NIL";
         
         return (
           <div className="booking-card">
             <div className="booking-details">
               <div className="booking-title" style={{ fontSize: computedFontSize + "px" }}>
-                {carInfo.toUpperCase()}
+                {washName.toUpperCase()}
               </div>
               <div className="booking-service">
-                {serviceName}{addonInfo ? " - " + addonInfo : ""}
+                {displayedService}
               </div>
             </div>
             {booking.scheduledTime && booking.finishTime && (
@@ -373,7 +385,7 @@
           </div>
         );
       };
-
+      
       const ClientDisplay = () => {
         const [bookings, setBookings] = useState([]);
         const [marqueeItems, setMarqueeItems] = useState([]);
@@ -405,9 +417,7 @@
         
         const fetchStockTickers = async () => {
           try {
-            const tickerData = await Promise.all(
-              tickerSymbols.map(symbol => fetchTickerChange(symbol))
-            );
+            const tickerData = await Promise.all(tickerSymbols.map(symbol => fetchTickerChange(symbol)));
             const tickerSpans = tickerData.map((item, index) => {
               if (item.percentChange === null) {
                 return (
@@ -468,9 +478,9 @@
           const worldHeadlines = await fetchFeedHeadlines("https://rss.nytimes.com/services/xml/rss/nyt/World.xml");
           let orderedHeadlines = [];
           const maxLength = Math.max(
-            middleEastHeadlines.length, 
-            worldHeadlines.length, 
-            soccerHeadlines.length, 
+            middleEastHeadlines.length,
+            worldHeadlines.length,
+            soccerHeadlines.length,
             businessHeadlines.length
           );
           for (let i = 0; i < maxLength; i++) {
@@ -492,9 +502,7 @@
             if (i < headlines.length - 1) {
               combined.push(
                 <span key={`ticker-${i}`}>
-                  {stockTickers.length > 0 
-                    ? stockTickers[stockTickerIndex % stockTickers.length] 
-                    : <span style={{ color: "white" }}>STOCK</span>}
+                  {stockTickers.length > 0 ? stockTickers[stockTickerIndex % stockTickers.length] : <span style={{ color: "white" }}>STOCK</span>}
                 </span>
               );
               stockTickerIndex++;
@@ -504,9 +512,7 @@
               if (i < headlines.length - 1) {
                 combined.push(
                   <span key={`ticker-r-${i}`}>
-                    {stockTickers.length > 0 
-                      ? stockTickers[stockTickerIndex % stockTickers.length] 
-                      : <span style={{ color: "white" }}>STOCK</span>}
+                    {stockTickers.length > 0 ? stockTickers[stockTickerIndex % stockTickers.length] : <span style={{ color: "white" }}>STOCK</span>}
                   </span>
                 );
                 stockTickerIndex++;
@@ -562,8 +568,7 @@
         const now = new Date();
         const scheduledBookings = bookings.filter(booking => booking.scheduledTime.getTime() > now.getTime());
         const inProgressBookings = bookings.filter(booking =>
-          now.getTime() >= booking.scheduledTime.getTime() &&
-          now.getTime() < booking.finishTime.getTime()
+          now.getTime() >= booking.scheduledTime.getTime() && now.getTime() < booking.finishTime.getTime()
         );
         const finishedBookings = bookings.filter(booking => {
           const finishedTime = booking.finishTime.getTime();
@@ -638,7 +643,7 @@
           </div>
         );
       };
-
+      
       ReactDOM.render(<ClientDisplay />, document.getElementById("root"));
     </script>
   </body>
