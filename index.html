@@ -185,12 +185,6 @@
         0% { transform: translateX(0%); }
         100% { transform: translateX(-50%); }
       }
-      /* 
-        RESPONSIVE DESIGN
-        -----------------------------------------------------------------------------
-        The layout adapts for smaller screens by rearranging the sections
-        and resizing the booking cards. The page will now be scrollable on mobile.
-      */
       @media only screen and (max-width: 768px) {
         html, body {
           overflow: auto !important;
@@ -284,6 +278,7 @@
     <div id="root"></div>
     <script type="text/babel">
       const { useState, useEffect } = React;
+
       function transformServiceName(name) {
         if (!name) return "NIL";
         let upper = name.toUpperCase();
@@ -294,6 +289,7 @@
         }
         return upper;
       }
+
       const ProgressBar = ({ scheduledTime, finishTime }) => {
         const [currentTime, setCurrentTime] = useState(new Date());
         useEffect(() => {
@@ -341,21 +337,34 @@
           </div>
         );
       };
+
       const BookingCard = ({ booking }) => {
-        const bookingDescription = booking.booking_description
-          ? booking.booking_description.replace(/\n/g, ' ').trim().toUpperCase()
-          : "NIL";
+        // Parse the booking description to split car info and add-on details.
+        // Expected format: "CAR INFO - TYPE OF WASH - ADDONS DETAILS | Amount Due: $XX.XX"
+        // We want to display only the CAR INFO in the title and in the service area show TYPE OF WASH along with any ADDONS DETAILS.
+        let carInfo = "NIL";
+        let addonsInfo = "";
+        if (booking.booking_description) {
+          const regex = /^([^,-]+)(?:\s*[-,]\s*Addons:\s*([^|]+))?(?:\|.*Amount Due:.*)?$/i;
+          const match = booking.booking_description.match(regex);
+          if (match) {
+            carInfo = match[1].trim();
+            addonsInfo = match[2] ? match[2].trim() : "";
+          } else {
+            carInfo = booking.booking_description.trim();
+          }
+        }
+        const computedFontSize = Math.min(48, Math.max(24, (250 - 40) / (carInfo.length * 0.6)));
         const serviceName = booking.service_name ? transformServiceName(booking.service_name) : "NIL";
-        const cardWidth = 250, cardPadding = 20;
-        const availableWidth = cardWidth - cardPadding * 2;
-        const computedFontSize = Math.min(48, Math.max(24, availableWidth / (bookingDescription.length * 0.6)));
         return (
           <div className="booking-card">
             <div className="booking-details">
               <div className="booking-title" style={{ fontSize: computedFontSize + "px" }}>
-                {bookingDescription}
+                {carInfo.toUpperCase()}
               </div>
-              <div className="booking-service">{serviceName}</div>
+              <div className="booking-service">
+                {serviceName}{addonsInfo ? " - " + addonsInfo : ""}
+              </div>
             </div>
             {booking.scheduledTime && booking.finishTime && (
               <ProgressBar scheduledTime={booking.scheduledTime} finishTime={booking.finishTime} />
@@ -363,17 +372,20 @@
           </div>
         );
       };
+
       const ClientDisplay = () => {
         const [bookings, setBookings] = useState([]);
         const [marqueeItems, setMarqueeItems] = useState([]);
         const [stockTickers, setStockTickers] = useState([]);
         const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
         const tickerSymbols = ["NVDA", "AAPL", "AMZN", "MSFT", "INTC"];
+        
         useEffect(() => {
           const handleResize = () => setIsMobile(window.innerWidth <= 768);
           window.addEventListener('resize', handleResize);
           return () => window.removeEventListener('resize', handleResize);
         }, []);
+        
         const fetchTickerChange = async (ticker) => {
           try {
             const aggRes = await fetch(`https://api.polygon.io/v2/aggs/ticker/${ticker}/prev?apiKey=RhP5_sSeMXR315d0U43Uxuwv5o4Tt5Hp`);
@@ -389,6 +401,7 @@
           }
           return { ticker, percentChange: null };
         };
+        
         const fetchStockTickers = async () => {
           try {
             const tickerData = await Promise.all(
@@ -418,9 +431,11 @@
             console.error("Error fetching stock tickers:", error);
           }
         };
+        
         useEffect(() => {
           fetchStockTickers();
         }, []);
+        
         const fetchFeedHeadlines = async (url) => {
           try {
             const response = await fetch(url);
@@ -439,6 +454,7 @@
             return [];
           }
         };
+        
         const fetchNews = async () => {
           const feeds = [
             { name: "MiddleEast", url: "https://rss.nytimes.com/services/xml/rss/nyt/MiddleEast.xml" },
@@ -464,6 +480,7 @@
           }
           return orderedHeadlines.length > 0 ? orderedHeadlines : ["Breaking News: No Articles Available"];
         };
+        
         const updateMarqueeItems = async () => {
           const headlines = await fetchNews();
           const rewardsMessage = <span key="rewards">ASK US ABOUT OUR REWARDS PROGRAM</span>;
@@ -497,9 +514,11 @@
           }
           setMarqueeItems(combined);
         };
+        
         useEffect(() => {
           updateMarqueeItems();
         }, [stockTickers]);
+        
         const fetchBookings = () => {
           fetch("https://mnstry.duckdns.org:3001/bookings")
             .then(response => response.json())
@@ -532,11 +551,13 @@
             })
             .catch(error => console.error("Error fetching bookings:", error));
         };
+        
         useEffect(() => {
           fetchBookings();
           const interval = setInterval(fetchBookings, 60000);
           return () => clearInterval(interval);
         }, []);
+        
         const now = new Date();
         const scheduledBookings = bookings.filter(booking => booking.scheduledTime.getTime() > now.getTime());
         const inProgressBookings = bookings.filter(booking =>
@@ -549,8 +570,8 @@
           return now.getTime() >= finishedTime && now.getTime() <= fourHoursAfter;
         });
         const useMarquee = finishedBookings.length >= 4;
-        // MOBILE: merge finished bookings into left-section grid in mobile view
         const allCardsMobile = [...scheduledBookings, ...inProgressBookings, ...finishedBookings];
+        
         return (
           <div>
             <div className="dashboard-container">
@@ -616,6 +637,7 @@
           </div>
         );
       };
+
       ReactDOM.render(<ClientDisplay />, document.getElementById("root"));
     </script>
   </body>
