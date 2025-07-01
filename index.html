@@ -270,7 +270,6 @@
           wakeLock = null;
         }
       });
-      // Request the wake lock on page load.
       requestWakeLock();
     </script>
   </head>
@@ -278,7 +277,7 @@
     <div id="root"></div>
     <script type="text/babel">
       const { useState, useEffect } = React;
-
+      
       function transformServiceName(name) {
         if (!name) return "NIL";
         let upper = name.toUpperCase();
@@ -289,7 +288,7 @@
         }
         return upper;
       }
-
+      
       const ProgressBar = ({ scheduledTime, finishTime }) => {
         const [currentTime, setCurrentTime] = useState(new Date());
         useEffect(() => {
@@ -339,23 +338,25 @@
       };
 
       const BookingCard = ({ booking }) => {
-        // Parse the booking description to split car info and add-on details.
-        // Expected format: "CAR INFO - TYPE OF WASH - ADDONS DETAILS | Amount Due: $XX.XX"
-        // We want to display only the CAR INFO in the title and in the service area show TYPE OF WASH along with any ADDONS DETAILS.
+        // Updated extraction: we only show the car name and add-on details.
         let carInfo = "NIL";
-        let addonsInfo = "";
+        let addonInfo = "";
         if (booking.booking_description) {
-          const regex = /^([^,-]+)(?:\s*[-,]\s*Addons:\s*([^|]+))?(?:\|.*Amount Due:.*)?$/i;
-          const match = booking.booking_description.match(regex);
-          if (match) {
-            carInfo = match[1].trim();
-            addonsInfo = match[2] ? match[2].trim() : "";
-          } else {
-            carInfo = booking.booking_description.trim();
+          // Split on " - "
+          const parts = booking.booking_description.split(" - ");
+          if (parts.length > 0) {
+            carInfo = parts[0].trim();
           }
+          // Look for add-on information that starts with "Addon Prices:"
+          parts.forEach(part => {
+            if (part.toLowerCase().includes("addon prices:")) {
+              addonInfo = part.split("addon prices:")[1].trim();
+            }
+          });
         }
         const computedFontSize = Math.min(48, Math.max(24, (250 - 40) / (carInfo.length * 0.6)));
         const serviceName = booking.service_name ? transformServiceName(booking.service_name) : "NIL";
+        
         return (
           <div className="booking-card">
             <div className="booking-details">
@@ -363,7 +364,7 @@
                 {carInfo.toUpperCase()}
               </div>
               <div className="booking-service">
-                {serviceName}{addonsInfo ? " - " + addonsInfo : ""}
+                {serviceName}{addonInfo ? " - " + addonInfo : ""}
               </div>
             </div>
             {booking.scheduledTime && booking.finishTime && (
